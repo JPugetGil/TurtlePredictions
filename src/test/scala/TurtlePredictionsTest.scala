@@ -1,39 +1,31 @@
-import better.files.File
+import data.MockData
+import entity.RaceStepEntity
+import org.apache.spark.SparkConf
 import org.apache.spark.rdd.RDD
-import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.sql.SparkSession
+import org.scalatest.BeforeAndAfter
 import org.scalatest.funsuite.AnyFunSuite
-import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll}
-
-import java.io.{File => JFile}
-import java.text.SimpleDateFormat
-import java.util.Date
-import scala.reflect.io.Directory
+import play.api.libs.json.JsResult
 
 class TurtlePredictionsTest
-    extends AnyFunSuite
-    with BeforeAndAfter
-    with BeforeAndAfterAll {
-  var sc: SparkContext = _;
+  extends AnyFunSuite
+    with BeforeAndAfter {
+  var ss: SparkSession = _
 
-  def checkObservations(
-      result: RDD[(String, String)],
-      supposedSize: Int
-  ): Any = {
-    result.cache()
-    val groupedResult = result.groupBy(_._1)
-    assert(groupedResult.count() == supposedSize)
+  test("Display values test") {
+    assert(TurtlePredictions
+      .displayValues(
+        "small", 15, 8, 122, 15.2, 0.8, 42
+      ))
   }
 
-  test("Vérifie la version case class avec Source-299.csv") {
-    TurtlePredictions
-        .displayValues(
-          "small", 15, 8, 122, 15.2, 0.8, 42
-        )
-  }
+  test("Test read and display json") {
+    val data: List[JsResult[RaceStepEntity]] = TurtlePredictions
+      .readJsonValues(MockData.data)
 
-  override def beforeAll: Unit = {
-    val myDir = new JFile("save")
-    myDir.mkdir()
+    data.foreach(element => {
+      assert(!element.isError)
+    })
   }
 
   before {
@@ -43,18 +35,14 @@ class TurtlePredictionsTest
       .setMaster(
         "local"
       )
-    sc = new SparkContext(conf)
+    ss = SparkSession
+      .builder()
+      .appName("TurtlePredictionsTest")
+      .config(conf)
+      .getOrCreate()
   }
 
   after {
-    // We want to save all tests
-    val dateFormatter = new SimpleDateFormat("yyyy-MM-dd_hh-mm-ss")
-    val forZip = File("indexed")
-    val destination =
-      File("save/test-%s.zip".format(dateFormatter.format(new Date())))
-    forZip.zipTo(destination)
-    val directory = new Directory(new JFile("indexed"))
-    directory.deleteRecursively()
-    sc.stop()
+    ss.stop()
   }
 }

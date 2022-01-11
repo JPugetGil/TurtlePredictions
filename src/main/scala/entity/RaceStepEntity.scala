@@ -1,14 +1,13 @@
 package entity
 
-import org.apache.spark.rdd.RDD
-
 case class RaceStepEntity(
-     turtles: RDD[TurtleEntity],
+     turtles: Seq[TurtleEntity],
      temperature: Double,
      qualite: Double
 ) {
 
-  def toTuple: (RDD[TurtleEntity], Double, Double) = {
+  def toTuple: (Seq[TurtleEntity], Double, Double) = {
     (turtles, temperature, qualite)
   }
 }
+

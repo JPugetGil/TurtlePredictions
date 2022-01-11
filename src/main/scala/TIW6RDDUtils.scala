@@ -14,7 +14,7 @@ object TIW6RDDUtils {
       NullWritable.get()
 
     override def generateFileNameForKeyValue(key: Any, value: Any, name: String): String =
-      "Source-%s-%s.csv".format(key.asInstanceOf[String], name)
+      "Source-%s-%s.txt".format(key.asInstanceOf[String], name)
   }
 
   /**
@@ -23,11 +23,11 @@ object TIW6RDDUtils {
     *
     * @param rddToWrite le rddAEcrire dans HDFS de la forme : "nom du fichier", "contenu"
     * @param dir        le répertoire qui contiendra les fichiers pour chaque case
-    * @param nbCases    le nombre approximatif de cases à écrire
+    * @param nbTopMax    le nombre approximatif de top par fichier
     */
-  def writePairRDDToHadoopUsingKeyAsFileName(rddToWrite: RDD[(String, String)], dir: String, nbCases: Int): Unit = {
+  def writePairRDDToHadoopUsingKeyAsFileName(rddToWrite: RDD[(String, String)], dir: String, nbTopMax: Int): Unit = {
     rddToWrite
-      .partitionBy(new HashPartitioner(nbCases))
+      .partitionBy(new HashPartitioner(nbTopMax))
       .saveAsHadoopFile(dir, classOf[String], classOf[String], classOf[RDDMultipleTextOutputFormat])
   }
 }
