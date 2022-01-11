@@ -1,0 +1,10 @@
+target
+.idea
+*.iml
+.vscode
+.settings
+metastore_db
+*.log
+.metals
+.bloop
+.bsp
