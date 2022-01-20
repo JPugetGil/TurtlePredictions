@@ -1,16 +1,33 @@
 import data.MockData
-import entity.RaceStepEntity
+import entity.{RaceStepEntity, TurtleJourneyStepEntity}
 import org.apache.spark.SparkConf
-import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
 import org.scalatest.BeforeAndAfter
 import org.scalatest.funsuite.AnyFunSuite
 import play.api.libs.json.JsResult
 
+import scala.collection.mutable.ListBuffer
+
 class TurtlePredictionsTest
   extends AnyFunSuite
     with BeforeAndAfter {
   var ss: SparkSession = _
+
+  test("Print turtle journey one by one") {
+    val data: List[JsResult[RaceStepEntity]] = TurtlePredictions
+      .readJsonValues(MockData.data)
+    val numberOfTurtle = data.head.get.turtles.length
+
+    val journeys = new ListBuffer[List[TurtleJourneyStepEntity]]
+    for (turtleId <- 1 until numberOfTurtle) {
+      journeys += TurtlePredictions.journeyOfTurtleN(turtleId, data)
+    }
+
+    journeys.foreach(journey => {
+      println(journey)
+      assert(journey.nonEmpty)
+    })
+  }
 
   test("Display values test") {
     assert(TurtlePredictions

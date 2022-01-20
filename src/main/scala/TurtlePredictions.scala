@@ -1,4 +1,4 @@
-import entity.{RaceStepEntity, TurtleEntity}
+import entity.{RaceStepEntity, TurtleEntity, TurtleJourneyStepEntity}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
 import play.api.libs.functional.syntax._
@@ -32,6 +32,14 @@ object TurtlePredictions {
     jsonList.map(element => {
       println(element.toString())
       element.validate[RaceStepEntity]
+    })
+  }
+
+  def journeyOfTurtleN(turtleId: Int, data: List[JsResult[RaceStepEntity]]): List[TurtleJourneyStepEntity] = {
+    data.map(raceStep => {
+      val raceStepEntity = raceStep.get
+      val currentTurtle = raceStepEntity.turtles(turtleId)
+      TurtleJourneyStepEntity(id = currentTurtle.id, top = currentTurtle.top, position = currentTurtle.position, temperature = raceStepEntity.temperature, qualite = raceStepEntity.qualite)
     })
   }
 
