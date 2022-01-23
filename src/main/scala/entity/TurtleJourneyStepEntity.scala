@@ -1,14 +1,14 @@
 package entity
 
 case class TurtleJourneyStepEntity(
-      id: Int,
       top: Int,
       position: Int,
       temperature: Double,
-      qualite: Double
+      qualite: Double,
+      vitesse: Int
 ) {
 
   override def toString: String = {
-    (id, top, position, temperature, qualite).toString()
+    (top, position, temperature, qualite, vitesse).toString()
   }
 }

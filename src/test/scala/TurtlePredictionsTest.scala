@@ -45,6 +45,22 @@ class TurtlePredictionsTest
     })
   }
 
+  test("Read data and do LR for tiny") {
+    TurtlePredictions.getDataAndComputeLR("python/tortoises-tiny.csv", ss.sparkContext);
+  }
+
+  test("Read data and do LR for small") {
+    TurtlePredictions.getDataAndComputeLR("python/tortoises-small.csv", ss.sparkContext);
+  }
+
+  test("Read data and do LR for medium") {
+    TurtlePredictions.getDataAndComputeLR("python/tortoises-medium.csv", ss.sparkContext);
+  }
+
+  test("Read data and do LR for large") {
+    TurtlePredictions.getDataAndComputeLR("python/tortoises-large.csv", ss.sparkContext);
+  }
+
   before {
     // configuration de Spark
     val conf = new SparkConf()

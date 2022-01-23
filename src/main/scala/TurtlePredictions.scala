@@ -1,7 +1,8 @@
 import entity.{RaceStepEntity, TurtleEntity, TurtleJourneyStepEntity}
-import org.apache.spark.SparkConf
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.{SparkConf, SparkContext}
 import play.api.libs.functional.syntax._
+import play.api.libs.json
 import play.api.libs.json.Reads._
 import play.api.libs.json._
 
@@ -20,6 +21,14 @@ object TurtlePredictions {
       (JsPath \ "qualite").read[Double]
     ) (RaceStepEntity.apply _)
 
+  implicit val turtleJourneyStepReads: Reads[TurtleJourneyStepEntity] = (
+    (JsPath \ "top").read[Int] and
+      (JsPath \ "position").read[Int] and
+      (JsPath \ "temperature").read[Double] and
+      (JsPath \ "qualite").read[Double] and
+      (JsPath \ "vitesse").read[Int]
+    ) (TurtleJourneyStepEntity.apply _)
+
   def displayValues(course: String, turtleId: Int, top: Int, position: Int, temperature: Double, qualite: Double, deltaTop: Int): Boolean = {
     println(course, turtleId, top, position, temperature, qualite, deltaTop)
     true
@@ -36,11 +45,45 @@ object TurtlePredictions {
   }
 
   def journeyOfTurtleN(turtleId: Int, data: List[JsResult[RaceStepEntity]]): List[TurtleJourneyStepEntity] = {
+    var counter = 0
     data.map(raceStep => {
       val raceStepEntity = raceStep.get
       val currentTurtle = raceStepEntity.turtles(turtleId)
-      TurtleJourneyStepEntity(id = currentTurtle.id, top = currentTurtle.top, position = currentTurtle.position, temperature = raceStepEntity.temperature, qualite = raceStepEntity.qualite)
+      var turtleJourneyStepEntity: TurtleJourneyStepEntity = null
+
+      if (counter == 0) {
+        turtleJourneyStepEntity = TurtleJourneyStepEntity(top = currentTurtle.top, position = currentTurtle.position, temperature = raceStepEntity.temperature, qualite = raceStepEntity.qualite, vitesse = 0)
+      } else {
+        val computedSpeed: Int = currentTurtle.position - data(counter - 1).get.turtles(turtleId).position
+        turtleJourneyStepEntity = TurtleJourneyStepEntity(top = currentTurtle.top, position = currentTurtle.position, temperature = raceStepEntity.temperature, qualite = raceStepEntity.qualite, vitesse = computedSpeed)
+      }
+
+      counter = counter + 1
+      turtleJourneyStepEntity
     })
+  }
+
+  def getDataAndComputeLR(
+     inputDir: String,
+     sc: SparkContext
+   ): Unit = {
+    val initialData = sc
+      .textFile(inputDir)
+      .map(_.split("\n").map(_.trim))
+
+    val turtlesJourney = initialData
+      .map(element => {
+        val splittedElement = element.mkString("").split(",", 2)
+        val parsed = Json.parse(splittedElement(1).replaceAll("'", "\""))
+
+        val jsonList = parsed.as[List[TurtleJourneyStepEntity]]
+        (
+          splittedElement(0),
+          jsonList
+        )
+      })
+
+    DataAnalysisUtils.turtlesAnalysis(turtlesJourney)
   }
 
   def main(args: Array[String]): Unit = {
