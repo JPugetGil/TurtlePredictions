@@ -37,27 +37,14 @@ def compute_tortoises_speed(r_type):
     nb_tortoises = len(race[r_type][0]["tortoises"])
     for i in range(1, nb_tops):
         for j in range(nb_tortoises):
-            if "steps" in tortoises_dict[r_type][j]:
-                tortoises_dict[r_type][j]["steps"].append({
-                    "top": race[r_type][i]["tortoises"][j]["top"],
-                    "position": race[r_type][i]["tortoises"][j]["position"],
-                    "temperature": race[r_type][i]["temperature"],
-                    "qualite": race[r_type][i]["qualite"],
-                    "vitesse": (race[r_type][i]["tortoises"][j]["position"] - race[r_type][i - 1]["tortoises"][j][
-                        "position"])
-                })
-            else:
-                tortoises_dict[r_type][j] = {
-                    "id": race[r_type][i]["tortoises"][j]["id"],
-                    "steps": [{
-                        "top": race[r_type][i]["tortoises"][j]["top"],
-                        "position": race[r_type][i]["tortoises"][j]["position"],
-                        "temperature": race[r_type][i]["temperature"],
-                        "qualite": race[r_type][i]["qualite"],
-                        "vitesse": (race[r_type][i]["tortoises"][j]["position"] - race[r_type][i - 1]["tortoises"][j][
-                            "position"])
-                    }]
-                }
+            tortoises_dict[r_type][j].append({
+                "top": race[r_type][i]["tortoises"][j]["top"],
+                "position": race[r_type][i]["tortoises"][j]["position"],
+                "temperature": race[r_type][i]["temperature"],
+                "qualite": race[r_type][i]["qualite"],
+                "vitesse": (race[r_type][i]["tortoises"][j]["position"] - race[r_type][i - 1]["tortoises"][j][
+                    "position"])
+            })
 
 
 # Initialise le dictionnaire pour chaque tortue
@@ -65,16 +52,18 @@ def initialize_tortoises_var(r_type):
     for t in threads:
         t.join()
     nb_tortoises = len(race[r_type][0]["tortoises"])
-    tortoises_dict[r_type] = [{} for a in range(nb_tortoises)]
+    tortoises_dict[r_type] = [[] for a in range(nb_tortoises)]
 
 
 # Ecrit le voyage de chaque tortue dans un fichier csv
 def print_tortoise_journey(data_to_write, r_type):
-    filename = "tortoises-{}.csv".format(r_type)
-    df = pd.json_normalize(data_to_write[r_type])
-    df.to_csv(filename, header=False, index=False, quoting=csv.QUOTE_NONE, escapechar=' ')
+    for turtleId in range(len(data_to_write[r_type])):
+        filename = "tortoises-{}-{}.csv".format(r_type, turtleId)
+        df = pd.DataFrame(data_to_write[r_type][turtleId])
+        df.to_csv(filename, index=False)
+        print("Les données de la tortue {} sont disponibles dans le fichier : {}.\n".format(turtleId, filename))
     print("Récupération des données de la course de type : {} terminée.".format(r_type))
-    print("Les données sont disponibles dans le fichier : {}.\n".format(filename))
+
 
 
 if __name__ == "__main__":
