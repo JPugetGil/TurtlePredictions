@@ -1,10 +1,13 @@
 import entity.{RaceStepEntity, TurtleEntity, TurtleJourneyStepEntity}
-import org.apache.spark.sql.SparkSession
-import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.commons.lang.StringUtils
+import org.apache.spark.SparkConf
+import org.apache.spark.sql.{Encoders, SparkSession}
 import play.api.libs.functional.syntax._
-import play.api.libs.json
 import play.api.libs.json.Reads._
 import play.api.libs.json._
+
+import java.io.File
+
 
 object TurtlePredictions {
   val compte = "p1608911"
@@ -28,6 +31,15 @@ object TurtlePredictions {
       (JsPath \ "qualite").read[Double] and
       (JsPath \ "vitesse").read[Int]
     ) (TurtleJourneyStepEntity.apply _)
+
+  def getListOfFiles(dir: String): List[File] = {
+    val d = new File(dir)
+    if (d.exists && d.isDirectory) {
+      d.listFiles.filter(_.isFile).toList
+    } else {
+      List[File]()
+    }
+  }
 
   def displayValues(course: String, turtleId: Int, top: Int, position: Int, temperature: Double, qualite: Double, deltaTop: Int): Boolean = {
     println(course, turtleId, top, position, temperature, qualite, deltaTop)
@@ -64,26 +76,20 @@ object TurtlePredictions {
   }
 
   def getDataAndComputeLR(
-     inputDir: String,
-     sc: SparkContext
-   ): Unit = {
-    val initialData = sc
-      .textFile(inputDir)
-      .map(_.split("\n").map(_.trim))
+       directory: String,
+       raceType: String,
+       ss: SparkSession
+     ): Boolean = {
+    val fileList = getListOfFiles(directory).filter(p => p.getName.contains(raceType))
 
-    val turtlesJourney = initialData
-      .map(element => {
-        val splittedElement = element.mkString("").split(",", 2)
-        val parsed = Json.parse(splittedElement(1).replaceAll("'", "\""))
+    fileList.foreach(file => {
+      val turtleId = StringUtils.substringBetween(file.getName, "-", ".").split("-").last
+      val turtleJourney = ss.read.schema(Encoders.product[TurtleJourneyStepEntity].schema).option("header", "true").csv(directory + "/" + file.getName)
 
-        val jsonList = parsed.as[List[TurtleJourneyStepEntity]]
-        (
-          splittedElement(0),
-          jsonList
-        )
-      })
+      DataAnalysisUtils.turtleAnalysis(turtleId, turtleJourney)
+    })
 
-    DataAnalysisUtils.turtlesAnalysis(turtlesJourney)
+    true
   }
 
   def main(args: Array[String]): Unit = {

@@ -46,19 +46,19 @@ class TurtlePredictionsTest
   }
 
   test("Read data and do LR for tiny") {
-    TurtlePredictions.getDataAndComputeLR("python/tortoises-tiny.csv", ss.sparkContext);
+    assert(TurtlePredictions.getDataAndComputeLR("python", "tiny", ss));
   }
 
   test("Read data and do LR for small") {
-    TurtlePredictions.getDataAndComputeLR("python/tortoises-small.csv", ss.sparkContext);
+    assert(TurtlePredictions.getDataAndComputeLR("python", "tortoises-small", ss));
   }
 
   test("Read data and do LR for medium") {
-    TurtlePredictions.getDataAndComputeLR("python/tortoises-medium.csv", ss.sparkContext);
+    assert(TurtlePredictions.getDataAndComputeLR("python", "tortoises-medium", ss));
   }
 
   test("Read data and do LR for large") {
-    TurtlePredictions.getDataAndComputeLR("python/tortoises-large.csv", ss.sparkContext);
+    assert(TurtlePredictions.getDataAndComputeLR("python", "tortoises-large", ss));
   }
 
   before {
