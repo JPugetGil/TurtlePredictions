@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-import csv
+import os
 
 import requests
 import time
@@ -57,18 +57,23 @@ def initialize_tortoises_var(r_type):
 
 # Ecrit le voyage de chaque tortue dans un fichier csv
 def print_tortoise_journey(data_to_write, r_type):
+    if not(os.path.exists(r_type)):
+        os.mkdir(r_type)
+
     for turtleId in range(len(data_to_write[r_type])):
-        filename = "tortoises-{}-{}.csv".format(r_type, turtleId)
+        filename = "{}/tortoises-{}.csv".format(r_type, turtleId)
         df = pd.DataFrame(data_to_write[r_type][turtleId])
         df.to_csv(filename, index=False)
         print("Les données de la tortue {} sont disponibles dans le fichier : {}.\n".format(turtleId, filename))
     print("Récupération des données de la course de type : {} terminée.".format(r_type))
 
+    del data_to_write[r_type]
+
 
 
 if __name__ == "__main__":
     PERIOD_BETWEEN_TOPS = 2.75
-    TOTAL_DURATION = 300
+    TOTAL_DURATION = 10800
     threads = []
     # Dictionnaire contenant tous les tops de chaque type de course
     race = {}

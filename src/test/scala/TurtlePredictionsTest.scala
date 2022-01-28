@@ -50,15 +50,15 @@ class TurtlePredictionsTest
   }
 
   test("Read data and do LR for small") {
-    assert(TurtlePredictions.getDataAndComputeLR("python", "tortoises-small", ss));
+    assert(TurtlePredictions.getDataAndComputeLR("python", "small", ss));
   }
 
   test("Read data and do LR for medium") {
-    assert(TurtlePredictions.getDataAndComputeLR("python", "tortoises-medium", ss));
+    assert(TurtlePredictions.getDataAndComputeLR("python", "medium", ss));
   }
 
   test("Read data and do LR for large") {
-    assert(TurtlePredictions.getDataAndComputeLR("python", "tortoises-large", ss));
+    assert(TurtlePredictions.getDataAndComputeLR("python", "large", ss));
   }
 
   before {

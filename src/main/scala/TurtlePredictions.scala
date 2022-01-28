@@ -80,11 +80,11 @@ object TurtlePredictions {
        raceType: String,
        ss: SparkSession
      ): Boolean = {
-    val fileList = getListOfFiles(directory).filter(p => p.getName.contains(raceType))
+    val fileList = getListOfFiles("%s/%s".format(directory, raceType))
 
     fileList.foreach(file => {
       val turtleId = StringUtils.substringBetween(file.getName, "-", ".").split("-").last
-      val turtleJourney = ss.read.schema(Encoders.product[TurtleJourneyStepEntity].schema).option("header", "true").csv(directory + "/" + file.getName)
+      val turtleJourney = ss.read.schema(Encoders.product[TurtleJourneyStepEntity].schema).option("header", "true").csv("%s/%s/%s".format(directory, raceType, file.getName))
 
       DataAnalysisUtils.turtleAnalysis(turtleId, turtleJourney)
     })
