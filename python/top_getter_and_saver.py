@@ -68,7 +68,7 @@ def print_tortoise_journey(data_to_write, r_type):
     print("Récupération des données de la course de type : {} terminée.".format(r_type))
 
     del data_to_write[r_type]
-
+    del race[r_type]
 
 
 if __name__ == "__main__":
@@ -82,7 +82,7 @@ if __name__ == "__main__":
     address = 'http://tortues.ecoquery.os.univ-lyon1.fr/race/'
     race_types = ["tiny", "small", "medium", "large"]
 
-    print("Récupération des informations..\n"
+    print("Récupération des informations...\n"
           "Veuillez patienter environs {} secondes.".format(TOTAL_DURATION * len(race_types)))
 
     for race_type in race_types:

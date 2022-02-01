@@ -1,4 +1,4 @@
-import TIW6RDDUtils.RDDMultipleTextOutputFormat
+import TIW6RDDUtils.{RDDExtensions, RDDMultipleTextOutputFormat}
 import entity.{RaceStepEntity, TurtleEntity, TurtleJourneyStepEntity, TurtleTypeEntity}
 import org.apache.commons.lang.StringUtils
 import org.apache.spark.{HashPartitioner, SparkConf}
@@ -97,7 +97,7 @@ object TurtlePredictions {
     val rdd = ss.sparkContext.parallelize(results)
     rdd
       .map(a => a.toString)
-      .saveAsTextFile("%s-analysis.csv".format(raceType))
+      .saveAsSingleTextFile("%s-analysis.csv".format(raceType))
     true
   }
 
