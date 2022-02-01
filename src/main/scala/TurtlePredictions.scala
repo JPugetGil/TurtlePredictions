@@ -1,12 +1,14 @@
-import entity.{RaceStepEntity, TurtleEntity, TurtleJourneyStepEntity}
+import TIW6RDDUtils.RDDMultipleTextOutputFormat
+import entity.{RaceStepEntity, TurtleEntity, TurtleJourneyStepEntity, TurtleTypeEntity}
 import org.apache.commons.lang.StringUtils
-import org.apache.spark.SparkConf
+import org.apache.spark.{HashPartitioner, SparkConf}
 import org.apache.spark.sql.{Encoders, SparkSession}
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
 
 import java.io.File
+import scala.collection.mutable.ArrayBuffer
 
 
 object TurtlePredictions {
@@ -81,14 +83,21 @@ object TurtlePredictions {
        ss: SparkSession
      ): Boolean = {
     val fileList = getListOfFiles("%s/%s".format(directory, raceType))
+    println("Filelist", fileList)
+    val results = ArrayBuffer[TurtleTypeEntity]()
 
     fileList.foreach(file => {
       val turtleId = StringUtils.substringBetween(file.getName, "-", ".").split("-").last
+      println("Analysis for turtle #" + turtleId)
       val turtleJourney = ss.read.schema(Encoders.product[TurtleJourneyStepEntity].schema).option("header", "true").csv("%s/%s/%s".format(directory, raceType, file.getName))
 
-      DataAnalysisUtils.turtleAnalysis(turtleId, turtleJourney)
+      results.append(DataAnalysisUtils.turtleAnalysis(turtleId, turtleJourney))
     })
 
+    val rdd = ss.sparkContext.parallelize(results)
+    rdd
+      .map(a => a.toString)
+      .saveAsTextFile("%s-analysis.csv".format(raceType))
     true
   }
 
