@@ -1,6 +1,8 @@
 import entity.{TurtleJourneyStepEntity, TurtleTypeEntity}
+import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.VectorAssembler
 import org.apache.spark.ml.linalg.DenseVector
+import org.apache.spark.ml.regression.{LinearRegression, LinearRegressionModel}
 import org.apache.spark.ml.stat.ChiSquareTest
 import org.apache.spark.sql.DataFrame
 
@@ -36,7 +38,6 @@ object DataAnalysisUtils {
       return TurtleTypeEntity(turtleId, 2, cyclicInfo._2 + ":" + cyclicInfo._3.mkString("-"))
     }
 
-    // FIXME : Test with small and tofix if it bugs
     val tirednessInfo = isTired(turtleJourneyToArray)
     if (tirednessInfo._1) {
       // The turtle is tired
@@ -45,6 +46,7 @@ object DataAnalysisUtils {
     }
 
     println("Turtle " + turtleId + " is lunatic")
+    understandLunatic(turtleJourney)
     TurtleTypeEntity(turtleId, 3, "") // TODO : quelles infos fournir ? le type pris par la tortue lunatique ?
   }
 
@@ -59,10 +61,10 @@ object DataAnalysisUtils {
 
 
   /**
-    *
-    * @param turtleJourney voyage de la tortue
-    * @return (isTired, vitesse max, rythme de diminution ou augmentation)
-    */
+   *
+   * @param turtleJourney voyage de la tortue
+   * @return (isTired, vitesse max, rythme de diminution ou augmentation)
+   */
   def isTired(turtleJourney: Array[TurtleJourneyStepEntity]): (Boolean, Int, Int) = {
     val maxSpeed = turtleJourney.reduce(computeMaxSpeed)
     val maxIndex = turtleJourney.indexWhere(element => element.vitesse == maxSpeed.vitesse)
@@ -91,12 +93,13 @@ object DataAnalysisUtils {
   }
 
   /**
-    * Une tortue cyclique possède un motif de vitesses dont tous les éléments sont différents.
-    * Pour savoir si une tortue est cyclique, on vérifie si une vitesse apparaît 2 fois dans le parcours, si oui on vérifie
-    * la vitesse aux index suivants, si elles sont identiques alors c'est un cycle, sinon elle n'est pas cyclique.
-    * @param turtleJourneyToArray voyage de la tortue
-    * @return (isCyclic, taille du cycle, motif du cycle)
-    */
+   * Une tortue cyclique possède un motif de vitesses dont tous les éléments sont différents.
+   * Pour savoir si une tortue est cyclique, on vérifie si une vitesse apparaît 2 fois dans le parcours, si oui on vérifie
+   * la vitesse aux index suivants, si elles sont identiques alors c'est un cycle, sinon elle n'est pas cyclique.
+   *
+   * @param turtleJourneyToArray voyage de la tortue
+   * @return (isCyclic, taille du cycle, motif du cycle)
+   */
   def isCyclic(turtleJourneyToArray: Array[TurtleJourneyStepEntity]): (Boolean, Int, List[Int]) = {
     val vitesseList = ArrayBuffer[Int](turtleJourneyToArray.head.vitesse)
     var checkIndex = 0
@@ -118,6 +121,30 @@ object DataAnalysisUtils {
     } else {
       (false, 0, null)
     }
+  }
+
+  def understandLunatic(turtleJourney: DataFrame) = {
+    // TODO : fixme please
+    turtleJourney.show()
+    val assembler = new VectorAssembler()
+      .setInputCols(Array("vitesse", "qualite", "temperature"))
+      .setOutputCol("features")
+
+    val lr = new LinearRegression()
+      .setMaxIter(10)
+      .setRegParam(0.3)
+      .setElasticNetParam(0.8)
+      .setFeaturesCol("features") // setting features column
+      .setLabelCol("top")
+
+    val pipeline = new Pipeline().setStages(Array(assembler, lr))
+
+    val lrModel = pipeline.fit(turtleJourney)
+    val linRegModel = lrModel.stages(1).asInstanceOf[LinearRegressionModel]
+
+    println(s"RMSE:  ${linRegModel.summary.rootMeanSquaredError}")
+    println(s"r2:    ${linRegModel.summary.r2}")
+    println(s"Position = ${linRegModel.coefficients(0)} * vitesse + ${linRegModel.coefficients(1)} * qualite + ${linRegModel.coefficients(2)} * temperature + ${linRegModel.intercept}")
   }
 
   def computeMaxSpeed(t1: TurtleJourneyStepEntity, t2: TurtleJourneyStepEntity): TurtleJourneyStepEntity = {

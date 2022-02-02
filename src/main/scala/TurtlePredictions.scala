@@ -83,7 +83,6 @@ object TurtlePredictions {
        ss: SparkSession
      ): Boolean = {
     val fileList = getListOfFiles("%s/%s".format(directory, raceType))
-    println("Filelist", fileList)
     val results = ArrayBuffer[TurtleTypeEntity]()
 
     fileList.foreach(file => {

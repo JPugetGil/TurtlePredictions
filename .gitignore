@@ -9,3 +9,7 @@ metastore_db
 .bloop
 .bsp
 *.zip
+python/large
+python/medium
+python/small
+python/tiny
