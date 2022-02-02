@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import os
+import sys
 
 import requests
 import time
@@ -9,8 +10,8 @@ import pandas as pd
 
 
 def get_data(add, r_type):
-    print("Récupération des données de la course de type : {}.".format(r_type))
-    print("Temps estimé : {} secondes.".format(TOTAL_DURATION))
+    print(f"Récupération des données de la course de type : {r_type}.")
+    print(f"Temps estimé : {TOTAL_DURATION} secondes.")
     race[r_type] = []
     time_counter = 0.0
     top_counter = 0
@@ -19,11 +20,12 @@ def get_data(add, r_type):
         threads.append(thread)
         thread.start()
         if top_counter >= TOP_INTERVAL:
-            # Calcul des (TOP_INTERVAL - 10) vitesses
+            # Calcul des (TOP_INTERVAL - 5) vitesses
             compute_tortoises_speed_interval(r_type)
             # Ecriture des fichiers
             print_tortoise_journey(tortoises_dict, r_type)
             # Vidange de la mémoire
+            print_information_verbose(f"Suppression des [:{TOP_BUFFER}] tops de toutes les tortues")
             for i in range(0, len(tortoises_dict[r_type])):
                 del tortoises_dict[r_type][i][:TOP_BUFFER]
             # Réinitialise le nombre de tops récupérés
@@ -31,7 +33,7 @@ def get_data(add, r_type):
         time_counter += PERIOD_BETWEEN_TOPS
         top_counter += 1
         time.sleep(PERIOD_BETWEEN_TOPS)
-        print("Temps écoulé : {} secondes.".format(time_counter))
+        print_information_verbose(f"Top counter : {top_counter}. Temps écoulé : {time_counter} secondes.")
 
 
 def do_request(add, r_type):
@@ -49,6 +51,9 @@ def compute_tortoises_speed(r_type):
     nb_tortoises = len(race[r_type][0]["tortoises"])
     for i in range(1, nb_tops):
         for j in range(nb_tortoises):
+            print_information_verbose(f"Écriture sur tortoises_dict[{r_type}][{j}]")
+            print_information_verbose(f"Lecture sur les éléments de race[{r_type}][{i}]['tortoises'][{j}]")
+            print_information_verbose(f"Lecture sur race[{r_type}][{i - 1}]['tortoises'][{j}]['position']")
             tortoises_dict[r_type][j].append({
                 "top": race[r_type][i]["tortoises"][j]["top"],
                 "position": race[r_type][i]["tortoises"][j]["position"],
@@ -63,7 +68,11 @@ def compute_tortoises_speed_interval(r_type):
     """Ajoute dans le dictionnaire la vitesse de chaque tortue à chaque top"""
     initialize_tortoises_var(r_type)
     nb_tortoises = len(race[r_type][0]["tortoises"])
+    print_information_verbose(f"Top buffer : {TOP_BUFFER}. Taille race[r_type] : {len(race[r_type])}")
     for i in range(1, TOP_BUFFER):
+        print_information_verbose(f"Écriture sur le tableau tortoises_dict[{r_type}]")
+        print_information_verbose(f"Lecture sur les éléments de race[{r_type}][{i}]['tortoises']")
+        print_information_verbose(f"Lecture sur race[{r_type}][{i - 1}]['tortoises']")
         for j in range(nb_tortoises):
             tortoises_dict[r_type][j].append({
                 "top": race[r_type][i]["tortoises"][j]["top"],
@@ -74,6 +83,7 @@ def compute_tortoises_speed_interval(r_type):
                     "position"])
             })
 
+    print_information_verbose(f"Suppression de race[{r_type}][:{TOP_BUFFER}]")
     del race[r_type][:TOP_BUFFER]
 
 
@@ -88,6 +98,7 @@ def initialize_tortoises_var(r_type):
 def print_tortoise_journey(data_to_write, r_type):
     """Écrit le voyage de chaque tortue dans un fichier csv"""
     if not (os.path.exists(r_type)):
+        print_information_verbose(f"Le dossier {r_type} n'est pas présent, nous le créons et ajoutons les fichiers")
         os.mkdir(r_type)
 
     for turtleId in range(len(data_to_write[r_type])):
@@ -111,7 +122,13 @@ def get_interval(r_type: str) -> int:
         return TOTAL_DURATION // int(PERIOD_BETWEEN_TOPS * 16)
 
 
+def print_information_verbose(info: str):
+    if VERBOSE_MODE_ENABLED:
+        print(info)
+
+
 if __name__ == "__main__":
+    VERBOSE_MODE_ENABLED = len(sys.argv) > 1 and sys.argv[1] == "--verbose"
     PERIOD_BETWEEN_TOPS = 2.75
     TOTAL_DURATION = 3600 * 24 * 2  # en secondes
     threads = []
@@ -128,9 +145,10 @@ if __name__ == "__main__":
     for race_type in race_types:
         TOP_INTERVAL = get_interval(race_type)
         TOP_BUFFER = TOP_INTERVAL - 5
+        print_information_verbose(f"Taille du buffer de la course : {TOP_BUFFER}.")
         get_data(address, race_type)
         compute_tortoises_speed(race_type)
         print_tortoise_journey(tortoises_dict, race_type)
-        print(f"Course \"{race_type}\" terminée.")
+        print_information_verbose(f"Récupération de la course \"{race_type}\" terminée.")
         del tortoises_dict[race_type]
         del race[race_type]
