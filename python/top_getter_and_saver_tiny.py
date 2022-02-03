@@ -5,7 +5,6 @@ import sys
 
 import requests
 import time
-import threading
 import pandas as pd
 
 
@@ -14,9 +13,11 @@ def get_data(add, r_type):
     race[r_type] = []
     time_counter = 0.0
     while time_counter < TOTAL_DURATION:
-        thread = threading.Thread(target=do_request, args=(add, r_type))
-        threads.append(thread)
-        thread.start()
+        t_begin = time.time()
+        do_request(add, r_type)
+        t_stop = time.time()
+        delay = (t_stop - t_begin)
+        print_information_verbose(f"Durée de récupération : {delay} secondes")
         top_size = len(race[r_type])
         if top_size >= TOP_INTERVAL:
             # Calcul des (TOP_INTERVAL - 5) vitesses
@@ -29,7 +30,8 @@ def get_data(add, r_type):
                 del tortoises_dict[r_type][i][:TOP_BUFFER - 1]
             # Réinitialise le nombre de tops récupérés
         time_counter += PERIOD_BETWEEN_TOPS
-        time.sleep(PERIOD_BETWEEN_TOPS)
+        print_information_verbose(f"Je vais donc attendre : {PERIOD_BETWEEN_TOPS - delay} secondes")
+        time.sleep(PERIOD_BETWEEN_TOPS - delay)
         print_information_verbose(f"Taille race[{r_type}] : {top_size}. Temps écoulé : {time_counter} secondes.")
 
 
@@ -88,8 +90,6 @@ def compute_tortoises_speed_interval(r_type):
 
 def initialize_tortoises_var(r_type):
     """Initialise le dictionnaire pour chaque tortue"""
-    for t in threads:
-        t.join()
     nb_tortoises = len(race[r_type][0]["tortoises"])
     tortoises_dict[r_type] = [[] for a in range(nb_tortoises)]
 
@@ -112,13 +112,13 @@ def print_tortoise_journey(data_to_write, r_type):
 
 def get_interval(r_type: str) -> int:
     if 'tiny' == r_type:
-        return TOTAL_DURATION // int(PERIOD_BETWEEN_TOPS * 2)
-    elif 'small' == r_type:
-        return TOTAL_DURATION // int(PERIOD_BETWEEN_TOPS * 4)
-    elif 'medium' == r_type:
         return TOTAL_DURATION // int(PERIOD_BETWEEN_TOPS * 8)
-    elif 'large' == r_type:
+    elif 'small' == r_type:
         return TOTAL_DURATION // int(PERIOD_BETWEEN_TOPS * 16)
+    elif 'medium' == r_type:
+        return TOTAL_DURATION // int(PERIOD_BETWEEN_TOPS * 32)
+    elif 'large' == r_type:
+        return TOTAL_DURATION // int(PERIOD_BETWEEN_TOPS * 64)
 
 
 def print_information_verbose(info: str):
@@ -128,7 +128,7 @@ def print_information_verbose(info: str):
 
 if __name__ == "__main__":
     VERBOSE_MODE_ENABLED = len(sys.argv) > 1 and sys.argv[1] == "--verbose"
-    PERIOD_BETWEEN_TOPS = 1.75
+    PERIOD_BETWEEN_TOPS = 2.25
     TOTAL_DURATION = 3600 * 24 * 2  # en secondes
     threads = []
     # Dictionnaire contenant tous les tops de chaque type de course
