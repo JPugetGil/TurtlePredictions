@@ -17,7 +17,7 @@ object BehaviorFormatter {
         data = Some(buildCyclic(turtleType._3))
       case LUNATIC =>
         data = Some(buildLunatic(turtleType._3))
-      case other => throw new IllegalArgumentException(s"Behavior ID \"$other\" is not recognized")
+      case other => throw new IllegalArgumentException("Behavior ID " + other + " is not recognized")
     }
     TurtleTypeEntity(turtleType._1, turtleType._2, data.get)
   }
@@ -93,7 +93,7 @@ object BehaviorFormatter {
         } else {
           throw new IllegalArgumentException("A cyclic turtle need 2 pieces of information, see printCyclic doc")
         }
-      case other => throw new IllegalArgumentException(s"Behavior ID \"$other\" is not recognized")
+      case other => throw new IllegalArgumentException(s"Behavior ID " + other + " is not recognized")
     }
     s"($behaviorId:$startTop:$toPrint);"
   }

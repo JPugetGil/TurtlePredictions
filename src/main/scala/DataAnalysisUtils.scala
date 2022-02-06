@@ -1,12 +1,9 @@
-import entity.behavior.BehaviorFormatter.{printCyclic, printRegular}
-import entity.behavior.TurtleDataBuilder.{CYCLIC, LUNATIC, REGULAR, TIRED, buildLunatic}
+import entity.behavior.TurtleDataBuilder._
 import entity.behavior.{TurtleCyclicData, TurtleLunaticData, TurtleRegularData, TurtleTiredData}
 import entity.{TurtleJourneyStepEntity, TurtleTypeEntity}
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.VectorAssembler
-import org.apache.spark.ml.linalg.DenseVector
 import org.apache.spark.ml.regression.{LinearRegression, LinearRegressionModel}
-import org.apache.spark.ml.stat.ChiSquareTest
 import org.apache.spark.sql.DataFrame
 
 import scala.collection.mutable.ArrayBuffer
@@ -15,15 +12,8 @@ import scala.collection.mutable.ArrayBuffer
 object DataAnalysisUtils {
 
   def turtleAnalysis(turtleId: String, turtleJourney: DataFrame): TurtleTypeEntity = {
-    val regularInfo = isRegular(turtleJourney)
-    if (regularInfo._1) {
-      println("Turtle " + turtleId + " is regular")
-      // the turtle is regular
-      return TurtleTypeEntity(turtleId.toInt, REGULAR, TurtleRegularData(regularInfo._2))
-    }
-
     val turtleJourneyToRDD = turtleJourney.rdd.map(r => TurtleJourneyStepEntity(
-      r(1).asInstanceOf[Int],
+      r(0).asInstanceOf[Int],
       r(1).asInstanceOf[Int],
       r(2).asInstanceOf[Double],
       r(3).asInstanceOf[Double],
@@ -31,95 +21,129 @@ object DataAnalysisUtils {
     )
     val turtleJourneyToArray = turtleJourneyToRDD.collect()
 
+    val regularInfo = isRegular(turtleJourneyToArray)
+    if (regularInfo._1) {
+      // the turtle is regular
+      return TurtleTypeEntity(turtleId.toInt, REGULAR, TurtleRegularData(regularInfo._2))
+    }
+
     // (isCyclic, période, Pattern de taille période)
     val cyclicInfo = isCyclic(turtleJourneyToArray)
     if (cyclicInfo._1) {
-      // The turtle is cyclic
-      println("Turtle " + turtleId + " is cyclic")
-      println("Cycle de taille %d : %s".format(cyclicInfo._2, cyclicInfo._3.mkString("(", ", ", ")")))
       return TurtleTypeEntity(turtleId.toInt, CYCLIC, TurtleCyclicData(cyclicInfo._2, cyclicInfo._3))
     }
 
     val tirednessInfo = isTired(turtleJourneyToArray)
     if (tirednessInfo._1) {
-      // The turtle is tired
-      println("Turtle " + turtleId + " is tired")
       return TurtleTypeEntity(turtleId.toInt, TIRED, TurtleTiredData(tirednessInfo._2, tirednessInfo._3))
     }
 
-    println("Turtle " + turtleId + " is lunatic")
-    understandLunatic(turtleJourney)
-    TurtleTypeEntity(turtleId.toInt, LUNATIC, buildLunatic("")) // TODO : donner infos
+//    understandLunatic(turtleJourney)
+    TurtleTypeEntity(turtleId.toInt, LUNATIC, TurtleLunaticData("", Array(null))) // TODO : donner infos
   }
 
-  def isRegular(turtleJourney: DataFrame): (Boolean, Int) = {
-    val assembler = new VectorAssembler()
-      .setInputCols(Array("vitesse"))
-      .setOutputCol("features")
-
-    val chiSquareTest = ChiSquareTest.test(assembler.transform(turtleJourney), "features", "top")
-    (chiSquareTest.select("pValues").head()(0).asInstanceOf[DenseVector](0).==(1.0), turtleJourney.head()(4).asInstanceOf[Int])
-  }
-
-
-  /**
-   *
-   * @param turtleJourney voyage de la tortue
-   * @return (isTired, vitesse max, rythme de diminution ou augmentation)
-   */
-  def isTired(turtleJourney: Array[TurtleJourneyStepEntity]): (Boolean, Int, Int) = {
-    val maxSpeed = turtleJourney.reduce(computeMaxSpeed)
-    val maxIndex = turtleJourney.indexWhere(element => element.vitesse == maxSpeed.vitesse)
-    val minSpeed = turtleJourney.reduce(computeMinSpeed)
-    val minIndex = turtleJourney.indexWhere(element => element.vitesse == minSpeed.vitesse)
-    var rhythm = 0
-
-    if (maxIndex > minIndex) {
-      // Cas où la vitesse va grandir au fur et à mesure
-      rhythm = turtleJourney(minIndex + 1).vitesse - turtleJourney(minIndex).vitesse
-      for (a <- minIndex until maxIndex - 1) {
-        if ((turtleJourney(a + 1).vitesse - turtleJourney(a).vitesse) != rhythm) {
-          return (false, 0, 0)
-        }
-      }
-    } else {
-      // Cas où la vitesse va diminuer au fur et à mesure
-      rhythm = turtleJourney(maxIndex).vitesse - turtleJourney(maxIndex + 1).vitesse
-      for (a <- maxIndex until minIndex - 1) {
-        if ((turtleJourney(a).vitesse - turtleJourney(a + 1).vitesse) != rhythm) {
-          return (false, 0, 0)
-        }
+  def isRegular(steps: Array[TurtleJourneyStepEntity]): (Boolean, Int) = {
+    val firstVitesse = steps.head.vitesse
+    val stepsSize = steps.length
+    for (count <- 1 until stepsSize) {
+      val isContinuous = steps(count).top == steps(count - 1).top + 1
+      val hasntSameSpeed = steps(count).vitesse != steps(count - 1).vitesse
+      if (isContinuous && hasntSameSpeed && steps(count).vitesse != firstVitesse) {
+        return (false, 0)
       }
     }
-    (true, maxSpeed.vitesse, rhythm)
+
+    (true, firstVitesse)
+  }
+
+  def isSameAbsoluteValue(value: Int, ref: Int): Boolean = {
+    (value == ref || value == ref * (-1))
   }
 
   /**
-   * Une tortue cyclique possède un motif de vitesses dont tous les éléments sont différents.
-   * Pour savoir si une tortue est cyclique, on vérifie si une vitesse apparaît 2 fois dans le parcours, si oui on vérifie
-   * la vitesse aux index suivants, si elles sont identiques alors c'est un cycle, sinon elle n'est pas cyclique.
-   *
-   * @param turtleJourneyToArray voyage de la tortue
-   * @return (isCyclic, taille du cycle, motif du cycle)
-   */
+    *
+    * @param turtleJourney voyage de la tortue
+    * @return (isTired, vitesse max, rythme de diminution ou augmentation)
+    */
+  def isTired(turtleJourney: Array[TurtleJourneyStepEntity]): (Boolean, Int, Int) = {
+    var maxSpeed = Int.MinValue
+    var rhythm = 0
+
+    for (a <- 1 until turtleJourney.length - 1) {
+      if (a == 1) {
+        val first = turtleJourney(1).vitesse - turtleJourney(0).vitesse
+        val second = turtleJourney(2).vitesse - turtleJourney(1).vitesse
+        val third = turtleJourney(3).vitesse - turtleJourney(2).vitesse
+        val fourth = turtleJourney(4).vitesse - turtleJourney(3).vitesse
+        val seq = Seq(first, second, third, fourth)
+        val test = seq.groupBy(identity).mapValues(_.size).maxBy((a) => {
+          a._2
+        })
+        rhythm = test._1
+      }
+
+      if (rhythm != 0) {
+        val isContinuous = turtleJourney(a).top == turtleJourney(a - 1).top + 1
+        val wasContinuous = if (a > 2) turtleJourney(a-1).top == turtleJourney(a - 2).top + 1 else true
+        val difference = turtleJourney(a).vitesse - turtleJourney(a - 1).vitesse
+        if (isContinuous && wasContinuous) {
+          if (!isSameAbsoluteValue(difference, rhythm)) {
+            if (turtleJourney(a).vitesse != 0) {
+              if (turtleJourney(a).vitesse >= maxSpeed) {
+                maxSpeed = turtleJourney(a).vitesse
+              } else {
+                return (false, 0, 0)
+              }
+            }
+          } else {
+            if (maxSpeed < turtleJourney(a).vitesse) {
+              maxSpeed = turtleJourney(a).vitesse
+            }
+          }
+        }
+      } else {
+        return (false, 0, 0)
+      }
+    }
+    (true, maxSpeed, rhythm)
+  }
+
+  /**
+    * Une tortue cyclique possède un motif de vitesses dont tous les éléments sont différents.
+    * Pour savoir si une tortue est cyclique, on vérifie si une vitesse apparaît 2 fois dans le parcours, si oui on vérifie
+    * la vitesse aux index suivants, si elles sont identiques alors c'est un cycle, sinon elle n'est pas cyclique.
+    *
+    * @param turtleJourneyToArray voyage de la tortue
+    * @return (isCyclic, taille du cycle, motif du cycle)
+    */
   def isCyclic(turtleJourneyToArray: Array[TurtleJourneyStepEntity]): (Boolean, Int, Array[Int]) = {
-    val vitesseList = ArrayBuffer[Int](turtleJourneyToArray.head.vitesse)
+    // FIXME
+    val vitesseArrayBuffer = ArrayBuffer[Int](turtleJourneyToArray.head.vitesse)
     var checkIndex = 0
     var indexHasChanged = false
     for (i <- 1 until turtleJourneyToArray.length) {
-      if (indexHasChanged && vitesseList(checkIndex) != turtleJourneyToArray(i).vitesse) {
-        return (false, 0, null)
-      } else if (vitesseList(checkIndex) == turtleJourneyToArray(i).vitesse) {
-        checkIndex = checkIndex + 1
-        checkIndex %= vitesseList.size
-        indexHasChanged = true
+      val vitesseList = vitesseArrayBuffer.toList
+
+      if (indexHasChanged && vitesseArrayBuffer(checkIndex) != turtleJourneyToArray(i).vitesse) {
+        if (turtleJourneyToArray(i).top == turtleJourneyToArray(i - 1).top + 1 && !vitesseList.contains(turtleJourneyToArray(i).vitesse)) {
+          return (false, 0, null)
+        }
+
+      } else if (vitesseArrayBuffer(checkIndex) == turtleJourneyToArray(i).vitesse) {
+        if (turtleJourneyToArray(i).top == turtleJourneyToArray(i - 1).top + 1) {
+          checkIndex = checkIndex + 1
+          checkIndex %= vitesseArrayBuffer.size
+          indexHasChanged = true
+        }
       } else {
-        vitesseList.append(turtleJourneyToArray(i).vitesse)
+        if (turtleJourneyToArray(i).top == turtleJourneyToArray(i - 1).top + 1) {
+          vitesseArrayBuffer.append(turtleJourneyToArray(i).vitesse)
+        }
       }
     }
 
     if (indexHasChanged) {
-      (true, vitesseList.size, vitesseList.toArray)
+      (true, vitesseArrayBuffer.size, vitesseArrayBuffer.toArray)
     } else {
       (false, 0, null)
     }

@@ -10,6 +10,7 @@ object TurtleDataBuilder {
 
   /**
     * Découpe une chaîne de caractères en éléments individuels selon un format défini.
+    *
     * @param raw Données de comportement formatées de la tortue
     * @return Array[String]
     */
@@ -19,6 +20,7 @@ object TurtleDataBuilder {
 
   /**
     * Crée un objet de données pour une tortue régulière à partir de données string formatées.
+    *
     * @param raw Données de comportement formatées de la tortue
     * @return Données sous forme d'objet
     */
@@ -28,6 +30,7 @@ object TurtleDataBuilder {
 
   /**
     * Crée un objet de données pour une tortue fatiguée à partir de données string formatées.
+    *
     * @param raw Données de comportement formatées de la tortue
     * @return Données sous forme d'objet
     */
@@ -41,6 +44,7 @@ object TurtleDataBuilder {
 
   /**
     * Crée un objet de données pour une tortue cyclique à partir de données string formatées.
+    *
     * @param raw Données de comportement formatées de la tortue
     * @return Données sous forme d'objet
     */
@@ -63,7 +67,7 @@ object TurtleDataBuilder {
   def buildLunatic(raw: String): TurtleLunaticData = {
     val rawArray = raw.split(';')
     if (rawArray.length != 3) {
-      throw new IllegalArgumentException(s"Raw data doesn't have the right format (given : \"${rawArray.mkString("(", ", ", ")")}\"")
+      throw new IllegalArgumentException(s"Raw data doesn't have the right format (given : " + rawArray.mkString("(", ", ", ")"))
     }
     val behaviors = ArrayBuffer[TurtleSubBehaviorData]()
     rawArray.foreach(b => {
@@ -79,7 +83,7 @@ object TurtleDataBuilder {
           data = Some(buildTired(behaviorRawData))
         case CYCLIC =>
           data = Some(buildCyclic(behaviorRawData))
-        case other => new IllegalArgumentException(s"Behavior ID \"$other\" is not recognized")
+        case other => new IllegalArgumentException(s"Behavior ID " + other + " is not recognized")
       }
       behaviors.append(new TurtleSubBehaviorData(REGULAR, bArray(1).toInt, data.get))
     })

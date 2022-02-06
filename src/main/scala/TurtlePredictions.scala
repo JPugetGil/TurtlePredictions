@@ -77,17 +77,12 @@ object TurtlePredictions {
     })
   }
 
-  def getDataAndComputeLR(
-       directory: String,
-       raceType: String,
-       ss: SparkSession
-     ): Boolean = {
+  def getDataAndComputeLR(directory: String, raceType: String, ss: SparkSession): Boolean = {
     val fileList = getListOfFiles("%s/%s".format(directory, raceType))
     val results = ArrayBuffer[TurtleTypeEntity]()
 
     fileList.foreach(file => {
       val turtleId = StringUtils.substringBetween(file.getName, "-", ".").split("-").last
-      println("Analysis for turtle #" + turtleId)
       val turtleJourney = ss.read.schema(Encoders.product[TurtleJourneyStepEntity].schema).option("header", "true").csv("%s/%s/%s".format(directory, raceType, file.getName))
 
       results.append(DataAnalysisUtils.turtleAnalysis(turtleId, turtleJourney))

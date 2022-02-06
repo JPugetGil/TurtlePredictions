@@ -19,6 +19,6 @@ case class TurtleTypeEntity(
   }
 
   override def toString: String = {
-    id + "," + behavior.toString + "," + info
+    id + "," + behavior.toString + "," + info.rawData
   }
 }
