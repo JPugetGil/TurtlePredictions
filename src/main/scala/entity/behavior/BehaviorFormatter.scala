@@ -53,9 +53,9 @@ object BehaviorFormatter {
   def printCyclic(patternLength: Int, pattern: Array[Int]): String = {
     var patternPrint = ""
     for (p <- pattern) {
-      patternPrint += ":" + p.toString
+      patternPrint += "-" + p.toString
     }
-    s"$patternLength$patternPrint"
+    s"$patternLength:${patternPrint.stripPrefix("-")}"
   }
 
   /**
