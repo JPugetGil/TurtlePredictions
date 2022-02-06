@@ -112,11 +112,11 @@ def print_tortoise_journey(data_to_write, r_type):
 
 def get_interval(r_type: str) -> int:
     if 'tiny' == r_type:
-        return TOTAL_DURATION // int(PERIOD_BETWEEN_TOPS * 8)
+        return TOTAL_DURATION // int(PERIOD_BETWEEN_TOPS * 64)
     elif 'small' == r_type:
-        return TOTAL_DURATION // int(PERIOD_BETWEEN_TOPS * 16)
+        return TOTAL_DURATION // int(PERIOD_BETWEEN_TOPS * 64)
     elif 'medium' == r_type:
-        return TOTAL_DURATION // int(PERIOD_BETWEEN_TOPS * 32)
+        return TOTAL_DURATION // int(PERIOD_BETWEEN_TOPS * 64)
     elif 'large' == r_type:
         return TOTAL_DURATION // int(PERIOD_BETWEEN_TOPS * 64)
 

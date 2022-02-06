@@ -144,7 +144,6 @@ object DataAnalysisUtils {
 
     println(s"RMSE:  ${linRegModel.summary.rootMeanSquaredError}")
     println(s"r2:    ${linRegModel.summary.r2}")
-    println(s"Position = ${linRegModel.coefficients(0)} * vitesse + ${linRegModel.coefficients(1)} * qualite + ${linRegModel.coefficients(2)} * temperature + ${linRegModel.intercept}")
   }
 
   def computeMaxSpeed(t1: TurtleJourneyStepEntity, t2: TurtleJourneyStepEntity): TurtleJourneyStepEntity = {
