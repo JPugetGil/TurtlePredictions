@@ -1,3 +1,6 @@
+import entity.behavior.BehaviorFormatter.{printCyclic, printRegular}
+import entity.behavior.TurtleDataBuilder.{CYCLIC, LUNATIC, REGULAR, TIRED, buildLunatic}
+import entity.behavior.{TurtleCyclicData, TurtleLunaticData, TurtleRegularData, TurtleTiredData}
 import entity.{TurtleJourneyStepEntity, TurtleTypeEntity}
 import org.apache.spark.ml.Pipeline
 import org.apache.spark.ml.feature.VectorAssembler
@@ -16,7 +19,7 @@ object DataAnalysisUtils {
     if (regularInfo._1) {
       println("Turtle " + turtleId + " is regular")
       // the turtle is regular
-      return TurtleTypeEntity(turtleId, 0, regularInfo._2.toString)
+      return TurtleTypeEntity(turtleId.toInt, REGULAR, TurtleRegularData(regularInfo._2))
     }
 
     val turtleJourneyToRDD = turtleJourney.rdd.map(r => TurtleJourneyStepEntity(
@@ -33,21 +36,20 @@ object DataAnalysisUtils {
     if (cyclicInfo._1) {
       // The turtle is cyclic
       println("Turtle " + turtleId + " is cyclic")
-      println("Cycle de taille %d : %s".format(cyclicInfo._2, cyclicInfo._3.toString()))
-      // TODO : formaliser le formatage des infos
-      return TurtleTypeEntity(turtleId, 2, cyclicInfo._2 + ":" + cyclicInfo._3.mkString("-"))
+      println("Cycle de taille %d : %s".format(cyclicInfo._2, cyclicInfo._3.mkString("(", ", ", ")")))
+      return TurtleTypeEntity(turtleId.toInt, CYCLIC, TurtleCyclicData(cyclicInfo._2, cyclicInfo._3))
     }
 
     val tirednessInfo = isTired(turtleJourneyToArray)
     if (tirednessInfo._1) {
       // The turtle is tired
       println("Turtle " + turtleId + " is tired")
-      return TurtleTypeEntity(turtleId, 1, tirednessInfo._2 + ":" + tirednessInfo._3.toString)
+      return TurtleTypeEntity(turtleId.toInt, TIRED, TurtleTiredData(tirednessInfo._2, tirednessInfo._3))
     }
 
     println("Turtle " + turtleId + " is lunatic")
     understandLunatic(turtleJourney)
-    TurtleTypeEntity(turtleId, 3, "") // TODO : quelles infos fournir ? le type pris par la tortue lunatique ?
+    TurtleTypeEntity(turtleId.toInt, LUNATIC, buildLunatic("")) // TODO : donner infos
   }
 
   def isRegular(turtleJourney: DataFrame): (Boolean, Int) = {
@@ -100,7 +102,7 @@ object DataAnalysisUtils {
    * @param turtleJourneyToArray voyage de la tortue
    * @return (isCyclic, taille du cycle, motif du cycle)
    */
-  def isCyclic(turtleJourneyToArray: Array[TurtleJourneyStepEntity]): (Boolean, Int, List[Int]) = {
+  def isCyclic(turtleJourneyToArray: Array[TurtleJourneyStepEntity]): (Boolean, Int, Array[Int]) = {
     val vitesseList = ArrayBuffer[Int](turtleJourneyToArray.head.vitesse)
     var checkIndex = 0
     var indexHasChanged = false
@@ -117,7 +119,7 @@ object DataAnalysisUtils {
     }
 
     if (indexHasChanged) {
-      (true, vitesseList.size, vitesseList.toList)
+      (true, vitesseList.size, vitesseList.toArray)
     } else {
       (false, 0, null)
     }

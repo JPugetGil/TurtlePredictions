@@ -1,19 +1,21 @@
 package entity
 
+import entity.behavior.TurtleBehaviorData
+
 /**
   *
-  * @param id Id de la tortue
-  * @param behavior 0 =  regular, 1 = tired, 2 = cyclic, 3 = lunatic
-  * @param info Info concernant le comportement de la tortue (behavior)
+  * @param id       Id de la tortue
+  * @param behavior 0 = regular, 1 = tired, 2 = cyclic, 3 = lunatic
+  * @param info     Info concernant le comportement de la tortue (behavior)
   */
 case class TurtleTypeEntity(
-    id: String,
-    behavior: Int,
-    info: String
+ id: Int,
+ behavior: Int,
+ info: TurtleBehaviorData
 ) {
 
-  def toTuple: (String, Int, String) = {
-    (id, behavior, info)
+  def toTuple: (Int, Int, String) = {
+    (id, behavior, info.rawData)
   }
 
   override def toString: String = {
