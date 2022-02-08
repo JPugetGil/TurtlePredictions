@@ -127,7 +127,13 @@ def print_information_verbose(info: str):
 
 
 if __name__ == "__main__":
-    VERBOSE_MODE_ENABLED = len(sys.argv) > 1 and sys.argv[1] == "--verbose"
+    race_types = ["tiny", "small", "medium", "large"]
+    VERBOSE_MODE_ENABLED = len(sys.argv) > 2 and sys.argv[2] == "--verbose"
+    RACE_TYPE_AVAILABLE = len(sys.argv) > 1 and sys.argv[1] in race_types
+    if not RACE_TYPE_AVAILABLE:
+        print_information_verbose('Erreur : le type de course n\'est pas connu ou pas spécifié')
+        exit()
+    race_type = sys.argv[1]
     PERIOD_BETWEEN_TOPS = 2.25
     TOTAL_DURATION = 3600 * 24 * 2  # en secondes
     threads = []
@@ -136,7 +142,6 @@ if __name__ == "__main__":
     # Dictionnaire contenant les informations + la vitesse à chaque top pour chaque tortue
     tortoises_dict = {}
     address = 'http://tortues.ecoquery.os.univ-lyon1.fr/race/'
-    race_type = "tiny"
 
     print("Récupération des informations...\n"
           "Veuillez patienter environ {} secondes.".format(TOTAL_DURATION))
