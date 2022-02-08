@@ -1,4 +1,6 @@
-import entity.behavior.TurtleDataBuilder._
+package utils
+
+import entity.behavior.TurtleDataBuilder.{CYCLIC, LUNATIC, REGULAR, TIRED}
 import entity.behavior.{TurtleCyclicData, TurtleLunaticData, TurtleRegularData, TurtleTiredData}
 import entity.{TurtleJourneyStepEntity, TurtleTypeEntity}
 import org.apache.spark.ml.Pipeline
@@ -7,7 +9,6 @@ import org.apache.spark.ml.regression.{LinearRegression, LinearRegressionModel}
 import org.apache.spark.sql.DataFrame
 
 import scala.collection.mutable.ArrayBuffer
-
 
 object DataAnalysisUtils {
   def turtleAnalysis(turtleId: String, turtleJourney: DataFrame): TurtleTypeEntity = {
@@ -30,13 +31,13 @@ object DataAnalysisUtils {
 
     val tirednessInfo = isTired(turtleJourneyToArray)
     if (tirednessInfo._1) {
-      return TurtleTypeEntity(turtleId.toInt, TIRED, TurtleTiredData(tirednessInfo._2, tirednessInfo._3))
+      return TurtleTypeEntity(turtleId.toInt, TIRED, TurtleTiredData(tirednessInfo._2, tirednessInfo._3, tirednessInfo._4))
     }
 
     // (isCyclic, période, Pattern de taille période)
     val cyclicInfo = isCyclic(turtleJourneyToArray)
     if (cyclicInfo._1) {
-      return TurtleTypeEntity(turtleId.toInt, CYCLIC, TurtleCyclicData(cyclicInfo._2, cyclicInfo._3))
+      return TurtleTypeEntity(turtleId.toInt, CYCLIC, TurtleCyclicData(cyclicInfo._2, cyclicInfo._3, cyclicInfo._4))
     }
 
     //    understandLunatic(turtleJourney)
@@ -66,8 +67,9 @@ object DataAnalysisUtils {
    * @param turtleJourney voyage de la tortue
    * @return (isTired, vitesse max, rythme de diminution ou augmentation)
    */
-  def isTired(turtleJourney: Array[TurtleJourneyStepEntity]): (Boolean, Int, Int) = {
+  def isTired(turtleJourney: Array[TurtleJourneyStepEntity]): (Boolean, Int, Int, Int) = {
     var maxSpeed = Int.MinValue
+    var maxIndex = 0
     var rhythm = 0
 
     for (a <- 1 until turtleJourney.length - 1) {
@@ -92,21 +94,23 @@ object DataAnalysisUtils {
             if (turtleJourney(a).vitesse != 0) {
               if (turtleJourney(a).vitesse >= maxSpeed) {
                 maxSpeed = turtleJourney(a).vitesse
+                maxIndex = a
               } else {
-                return (false, 0, 0)
+                return (false, 0, 0, 0)
               }
             }
           } else {
             if (maxSpeed < turtleJourney(a).vitesse) {
               maxSpeed = turtleJourney(a).vitesse
+              maxIndex = a
             }
           }
         }
       } else {
-        return (false, 0, 0)
+        return (false, 0, 0, 0)
       }
     }
-    (true, maxSpeed, Math.abs(rhythm))
+    (true, maxSpeed, Math.abs(rhythm), maxIndex)
   }
 
   /**
@@ -117,8 +121,9 @@ object DataAnalysisUtils {
    * @param turtleJourneyToArray voyage de la tortue
    * @return (isCyclic, taille du cycle, motif du cycle)
    */
-  def isCyclic(turtleJourneyToArray: Array[TurtleJourneyStepEntity]): (Boolean, Int, Array[Int]) = {
+  def isCyclic(turtleJourneyToArray: Array[TurtleJourneyStepEntity]): (Boolean, Int, Array[Int], Int) = {
     val vitesseArrayBuffer = ArrayBuffer[Int](turtleJourneyToArray.head.vitesse)
+    val firstTop = turtleJourneyToArray.head.top
     var checkIndex = 0
     var indexHasChanged = false
     for (i <- 1 until turtleJourneyToArray.length) {
@@ -126,7 +131,7 @@ object DataAnalysisUtils {
 
       if (indexHasChanged && vitesseArrayBuffer(checkIndex) != turtleJourneyToArray(i).vitesse) {
         if (turtleJourneyToArray(i).top == turtleJourneyToArray(i - 1).top + 1 && !vitesseList.contains(turtleJourneyToArray(i).vitesse)) {
-          return (false, 0, null)
+          return (false, 0, null, 0)
         }
 
       } else if (vitesseArrayBuffer(checkIndex) == turtleJourneyToArray(i).vitesse) {
@@ -143,9 +148,9 @@ object DataAnalysisUtils {
     }
 
     if (indexHasChanged) {
-      (true, vitesseArrayBuffer.size, vitesseArrayBuffer.toArray)
+      (true, vitesseArrayBuffer.size, vitesseArrayBuffer.toArray, firstTop)
     } else {
-      (false, 0, null)
+      (false, 0, null, 0)
     }
   }
 

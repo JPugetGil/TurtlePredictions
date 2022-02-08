@@ -40,5 +40,5 @@ fi
 
 echo "Analyse des données..."
 # TODO Changer chemin du .jar
-spark-submit --class TurtlePredictions "$destHDFS/TurtlePredictions-assembly-0.1.jar"
+spark-submit --class TurtleAnalysis "$destHDFS/TurtlePredictions-assembly-0.1.jar"
 echo "Analyse terminée."

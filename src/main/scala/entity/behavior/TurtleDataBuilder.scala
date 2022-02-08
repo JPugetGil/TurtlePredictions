@@ -39,7 +39,7 @@ object TurtleDataBuilder {
     if (rawArray.length != 2) {
       throw new IllegalArgumentException()
     }
-    TurtleTiredData(rawArray(0).toInt, rawArray(1).toInt)
+    TurtleTiredData(rawArray(0).toInt, rawArray(1).toInt, rawArray(2).toInt)
   }
 
   /**
@@ -54,8 +54,9 @@ object TurtleDataBuilder {
       throw new IllegalArgumentException()
     }
     val length = rawArray(0).toInt
+    val firstIndex = rawArray(2).toInt
     val patternArray = rawArray(1).split('-').map(speed => speed.toInt)
-    TurtleCyclicData(length, patternArray)
+    TurtleCyclicData(length, patternArray, firstIndex)
   }
 
   /**

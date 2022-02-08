@@ -1,3 +1,5 @@
+package utils
+
 import org.apache.hadoop.fs.{FileSystem, FileUtil, Path}
 import org.apache.hadoop.io.NullWritable
 import org.apache.hadoop.io.compress.CompressionCodec
@@ -46,8 +48,8 @@ object TIW6RDDUtils {
       saveAsSingleTextFileInternal(path, Some(codec))
 
     private def saveAsSingleTextFileInternal(
-      path: String, codec: Option[Class[_ <: CompressionCodec]]
-    ): Unit = {
+                                              path: String, codec: Option[Class[_ <: CompressionCodec]]
+                                            ): Unit = {
 
       // The interface with hdfs:
       val hdfs = FileSystem.get(rdd.sparkContext.hadoopConfiguration)

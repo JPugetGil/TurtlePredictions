@@ -6,7 +6,7 @@ import org.apache.spark.sql.Row
 
 object BehaviorFormatter {
   def toEntity(row: Row): TurtleTypeEntity = {
-    val turtleType = (row(0).asInstanceOf[Int], row(1).asInstanceOf[Int], row(2).asInstanceOf[String])
+    val turtleType = (row(0).asInstanceOf[String].toInt, row(1).asInstanceOf[String].toInt, row(2).asInstanceOf[String])
     var data: Option[TurtleBehaviorData] = None
     turtleType._2 match {
       case REGULAR =>
@@ -39,8 +39,8 @@ object BehaviorFormatter {
     * @param step     Différence de vitesse de la tortue entre chaque top
     * @return informations d'une tortue fatiguée formatées
     */
-  def printTired(maxSpeed: Int, step: Int): String = {
-    s"$maxSpeed:$step"
+  def printTired(maxSpeed: Int, step: Int, indexMax: Int): String = {
+    s"$maxSpeed:$step:$indexMax"
   }
 
   /**
@@ -50,12 +50,12 @@ object BehaviorFormatter {
     * @param pattern       Motif de vitesses
     * @return informations d'une tortue fatiguée formatées
     */
-  def printCyclic(patternLength: Int, pattern: Array[Int]): String = {
+  def printCyclic(patternLength: Int, pattern: Array[Int], indexFirst: Int): String = {
     var patternPrint = ""
     for (p <- pattern) {
       patternPrint += "-" + p.toString
     }
-    s"$patternLength:${patternPrint.stripPrefix("-")}"
+    s"$patternLength:${patternPrint.stripPrefix("-")}:$indexFirst"
   }
 
   /**
@@ -81,15 +81,15 @@ object BehaviorFormatter {
           throw new IllegalArgumentException("A regular turtle need 1 piece of information, see printRegular doc")
         }
       case TIRED =>
-        if (info.length == 2) {
-          toPrint = printTired(info(0).toInt, info(1).toInt)
+        if (info.length == 3) {
+          toPrint = printTired(info(0).toInt, info(1).toInt, info(2).toInt)
         } else {
           throw new IllegalArgumentException("A tired turtle need 2 pieces of information, see printTired doc")
         }
       case CYCLIC =>
-        if (info.length == 2) {
+        if (info.length == 3) {
           val pattern = info(1).split('-').map(speed => speed.toInt)
-          toPrint = printCyclic(info(0).toInt, pattern)
+          toPrint = printCyclic(info(0).toInt, pattern, info(2).toInt)
         } else {
           throw new IllegalArgumentException("A cyclic turtle need 2 pieces of information, see printCyclic doc")
         }
