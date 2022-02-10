@@ -71,31 +71,8 @@ object BehaviorFormatter {
     * @return informations d'un comportement de tortue lunatique formatées
     * @throws IllegalArgumentException Quand la taille de info est incorrecte
     */
-  def printLunaticPartialBehavior(behaviorId: Int, startTop: Int, info: Array[String]): String = {
-    var toPrint = ""
-    behaviorId match {
-      case REGULAR =>
-        if (info.length == 1) {
-          toPrint = printRegular(info(0).toInt)
-        } else {
-          throw new IllegalArgumentException("A regular turtle need 1 piece of information, see printRegular doc")
-        }
-      case TIRED =>
-        if (info.length == 3) {
-          toPrint = printTired(info(0).toInt, info(1).toInt, info(2).toInt)
-        } else {
-          throw new IllegalArgumentException("A tired turtle need 2 pieces of information, see printTired doc")
-        }
-      case CYCLIC =>
-        if (info.length == 3) {
-          val pattern = info(1).split('-').map(speed => speed.toInt)
-          toPrint = printCyclic(info(0).toInt, pattern, info(2).toInt)
-        } else {
-          throw new IllegalArgumentException("A cyclic turtle need 2 pieces of information, see printCyclic doc")
-        }
-      case other => throw new IllegalArgumentException(s"Behavior ID " + other + " is not recognized")
-    }
-    s"($behaviorId:$startTop:$toPrint);"
+  def printLunaticPartialBehavior(behaviorId: Int, startTop: Int, temperature: Double, qualite: Double, info: TurtleBehaviorData): String = {
+    s"($behaviorId:$startTop:$temperature:$qualite:${info.rawData})"
   }
 
 }

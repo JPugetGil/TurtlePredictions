@@ -1,16 +1,14 @@
 package utils
 
 import entity.behavior.TurtleDataBuilder.{CYCLIC, LUNATIC, REGULAR, TIRED}
-import entity.behavior.{TurtleCyclicData, TurtleLunaticData, TurtleRegularData, TurtleTiredData}
+import entity.behavior._
 import entity.{TurtleJourneyStepEntity, TurtleTypeEntity}
-import org.apache.spark.ml.Pipeline
-import org.apache.spark.ml.feature.VectorAssembler
-import org.apache.spark.ml.regression.{LinearRegression, LinearRegressionModel}
 import org.apache.spark.sql.DataFrame
 
 import scala.collection.mutable.ArrayBuffer
 
 object DataAnalysisUtils {
+
   def turtleAnalysis(turtleId: String, turtleJourney: DataFrame): TurtleTypeEntity = {
     val turtleJourneyToRDD = turtleJourney.rdd
       .filter(turtleJ => turtleJ(0) != null && turtleJ(1) != null && turtleJ(2) != null && turtleJ(3) != null && turtleJ(4) != null)
@@ -23,27 +21,40 @@ object DataAnalysisUtils {
       )
     val turtleJourneyToArray = turtleJourneyToRDD.collect()
 
-    // (Boolean: isRegular, Int: Constante, Int: Numero de top en echec)
+    // (Boolean: isRegular, Int: Constante, (Int: Numero de top en echec, Double: Temperature, Double: Qualite))
     val regularInfo = isRegular(turtleJourneyToArray)
     if (regularInfo._1) {
       // the turtle is regular
       return TurtleTypeEntity(turtleId.toInt, REGULAR, TurtleRegularData(regularInfo._2))
     }
 
-    // (Boolean: isTired, Int: maxSpeed, Int: valeur abs du rythme, Int: numero top du max, Int: Numero de top en echec)
+    // (Boolean: isTired, Int: maxSpeed, Int: valeur abs du rythme, Int: numero top du max, (Int: Numero de top en echec, Double: Temperature, Double: Qualite))
     val tirednessInfo = isTired(turtleJourneyToArray)
     if (tirednessInfo._1) {
       return TurtleTypeEntity(turtleId.toInt, TIRED, TurtleTiredData(tirednessInfo._2, tirednessInfo._3, tirednessInfo._4))
     }
 
-    // (isCyclic, période, Pattern de taille période, Int: Numero de top en echec)
+    // (isCyclic, période, Pattern de taille période, (Int: Numero de top en echec, Double: Temperature, Double: Qualite))
     val cyclicInfo = isCyclic(turtleJourneyToArray)
     if (cyclicInfo._1) {
       return TurtleTypeEntity(turtleId.toInt, CYCLIC, TurtleCyclicData(cyclicInfo._2, cyclicInfo._3, cyclicInfo._4))
     }
 
     // TODO : Malik - regularInfo._3, tirednessInfo._5, cyclicInfo._5 (informations à comparer et prendre max pour construction
-    TurtleTypeEntity(turtleId.toInt, LUNATIC, TurtleLunaticData("", Array(null))) // TODO : donner infos
+    val indexArray = Array(regularInfo._3._1, tirednessInfo._5._1, cyclicInfo._5._1)
+    val indexOfMax = indexArray.indexOf(indexArray.max)
+
+    val temperatureAndQualite = getTemperatureAndQualite(indexOfMax, regularInfo, tirednessInfo, cyclicInfo)
+    val behaviorData = getBehaviorData(indexOfMax, regularInfo, tirednessInfo, cyclicInfo)
+    TurtleTypeEntity(
+      turtleId.toInt,
+      LUNATIC,
+      TurtleLunaticData(
+        Array(
+          TurtleSubBehaviorData(indexOfMax, turtleJourneyToArray(0).top, temperatureAndQualite._1, temperatureAndQualite._2, behaviorData) // TODO
+        )
+      )
+    )
   }
 
   /**
@@ -58,7 +69,7 @@ object DataAnalysisUtils {
       val isContinuous = steps(count).top == steps(count - 1).top + 1
       val hasntSameSpeed = steps(count).vitesse != steps(count - 1).vitesse
       if (isContinuous && hasntSameSpeed && steps(count).vitesse != firstVitesse) {
-        return (false, 0, (steps(count).top, steps(count).temperature, steps(count).qualite))
+        return (false, firstVitesse, (steps(count).top, steps(count).temperature, steps(count).qualite))
       }
     }
 
@@ -72,7 +83,7 @@ object DataAnalysisUtils {
   /**
    *
    * @param turtleJourney voyage de la tortue
-   * @return (isTired, vitesse max, rythme de diminution ou augmentation, (Numero de top en echec, Temperature, Qualite))
+   * @return (isTired, vitesse max, rythme de diminution ou augmentation, Index du max (Numero de top en echec, Temperature, Qualite))
    */
   def isTired(turtleJourney: Array[TurtleJourneyStepEntity]): (Boolean, Int, Int, Int, (Int, Double, Double)) = {
     var maxSpeed = Int.MinValue
@@ -103,7 +114,7 @@ object DataAnalysisUtils {
                 maxSpeed = turtleJourney(a).vitesse
                 maxIndex = turtleJourney(a).top
               } else {
-                return (false, 0, 0, 0, (turtleJourney(a).top, turtleJourney(a).temperature, turtleJourney(a).qualite))
+                return (false, maxSpeed, Math.abs(rhythm), maxIndex, (turtleJourney(a).top, turtleJourney(a).temperature, turtleJourney(a).qualite))
               }
             }
           } else {
@@ -114,7 +125,7 @@ object DataAnalysisUtils {
           }
         }
       } else {
-        return (false, 0, 0, 0, (turtleJourney(1).top, turtleJourney(1).temperature, turtleJourney(1).qualite))
+        return (false, maxSpeed, Math.abs(rhythm), maxIndex, (turtleJourney(1).top, turtleJourney(1).temperature, turtleJourney(1).qualite))
       }
     }
     (true, maxSpeed, Math.abs(rhythm), maxIndex, (0, 0, 0))
@@ -138,7 +149,7 @@ object DataAnalysisUtils {
 
       if (indexHasChanged && vitesseArrayBuffer(checkIndex) != turtleJourney(i).vitesse) {
         if (turtleJourney(i).top == turtleJourney(i - 1).top + 1 && !vitesseList.contains(turtleJourney(i).vitesse)) {
-          return (false, 0, null, 0, (turtleJourney(i).top, turtleJourney(i).temperature, turtleJourney(i).qualite))
+          return (false, vitesseArrayBuffer.size, vitesseArrayBuffer.toArray, firstTop, (turtleJourney(i).top, turtleJourney(i).temperature, turtleJourney(i).qualite))
         }
 
       } else if (vitesseArrayBuffer(checkIndex) == turtleJourney(i).vitesse) {
@@ -158,7 +169,39 @@ object DataAnalysisUtils {
       (true, vitesseArrayBuffer.size, vitesseArrayBuffer.toArray, firstTop, (0, 0, 0))
     } else {
       val step = turtleJourney(vitesseArrayBuffer.size)
-      (false, 0, null, 0, (step.top, step.temperature, step.qualite))
+      (false, vitesseArrayBuffer.size, vitesseArrayBuffer.toArray, firstTop, (step.top, step.temperature, step.qualite))
+    }
+  }
+
+  def getTemperatureAndQualite(
+                                indexOfMax: Int,
+                                regularInfo: (Boolean, Int, (Int, Double, Double)),
+                                tirednessInfo: (Boolean, Int, Int, Int, (Int, Double, Double)),
+                                cyclicInfo: (Boolean, Int, Array[Int], Int, (Int, Double, Double))
+                              ): (Double, Double) = {
+    indexOfMax match {
+      case REGULAR =>
+        (regularInfo._3._2, regularInfo._3._3)
+      case TIRED =>
+        (tirednessInfo._5._2, tirednessInfo._5._3)
+      case CYCLIC =>
+        (cyclicInfo._5._2, cyclicInfo._5._3)
+    }
+  }
+
+  def getBehaviorData(
+                       indexOfMax: Int,
+                       regularInfo: (Boolean, Int, (Int, Double, Double)),
+                       tirednessInfo: (Boolean, Int, Int, Int, (Int, Double, Double)),
+                       cyclicInfo: (Boolean, Int, Array[Int], Int, (Int, Double, Double))
+                     ): TurtleBehaviorData = {
+    indexOfMax match {
+      case REGULAR =>
+        TurtleRegularData(regularInfo._2)
+      case TIRED =>
+        TurtleTiredData(tirednessInfo._2, tirednessInfo._3, tirednessInfo._4)
+      case CYCLIC =>
+        TurtleCyclicData(cyclicInfo._2, cyclicInfo._3, cyclicInfo._4)
     }
   }
 

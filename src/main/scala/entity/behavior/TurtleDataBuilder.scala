@@ -67,15 +67,17 @@ object TurtleDataBuilder {
     */
   def buildLunatic(raw: String): TurtleLunaticData = {
     val rawArray = raw.split(';')
-    if (rawArray.length != 3) {
-      throw new IllegalArgumentException(s"Raw data doesn't have the right format (given : " + rawArray.mkString("(", ", ", ")"))
-    }
+//    if (rawArray.length != 3) {
+//      throw new IllegalArgumentException(s"Raw data doesn't have the right format (given : " + rawArray.mkString("(", ", ", ")"))
+//    }
     val behaviors = ArrayBuffer[TurtleSubBehaviorData]()
     rawArray.foreach(b => {
       val bClean = b.stripPrefix("(").stripSuffix(")")
       val bArray = splitElements(bClean)
       val behaviorType = bArray(0).toInt
-      val behaviorRawData = bArray.slice(2, bArray.length).mkString(":")
+      val temperature = bArray(2).toDouble
+      val qualite = bArray(3).toDouble
+      val behaviorRawData = bArray.slice(4, bArray.length).mkString(":")
       var data: Option[TurtleBehaviorData] = None
       behaviorType match {
         case REGULAR =>
@@ -86,9 +88,9 @@ object TurtleDataBuilder {
           data = Some(buildCyclic(behaviorRawData))
         case other => new IllegalArgumentException(s"Behavior ID " + other + " is not recognized")
       }
-      behaviors.append(new TurtleSubBehaviorData(REGULAR, bArray(1).toInt, data.get))
+      behaviors.append(TurtleSubBehaviorData(behaviorType, bArray(1).toInt, temperature, qualite, data.get))
     })
 
-    TurtleLunaticData(raw, behaviors.toArray)
+    TurtleLunaticData(behaviors.toArray)
   }
 }

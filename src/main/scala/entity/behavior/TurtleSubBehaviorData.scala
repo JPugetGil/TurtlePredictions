@@ -1,5 +1,5 @@
 package entity.behavior
 
-class TurtleSubBehaviorData(behaviorType: Int, startStep: Int, behaviorData: TurtleBehaviorData) {
+case class TurtleSubBehaviorData(behaviorId: Int, startTop: Int, temperature: Double, qualite: Double, behaviorData: TurtleBehaviorData) {
 
 }
