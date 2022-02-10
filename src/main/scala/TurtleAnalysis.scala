@@ -78,7 +78,7 @@ object TurtleAnalysis {
     })
   }
 
-  def getDataAndComputeLR(directory: String, raceType: String, ss: SparkSession): Boolean = {
+  def getDataAndComputeAnalysis(directory: String, raceType: String, ss: SparkSession): Boolean = {
     val fileList = getListOfFiles("%s/%s".format(directory, raceType))
     val results = ArrayBuffer[TurtleTypeEntity]()
 

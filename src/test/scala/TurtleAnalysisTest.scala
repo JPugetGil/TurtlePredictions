@@ -46,19 +46,19 @@ class TurtleAnalysisTest
   }
 
   test("Read data and do LR for tiny") {
-    assert(TurtleAnalysis.getDataAndComputeLR("python", "tiny", ss));
+    assert(TurtleAnalysis.getDataAndComputeAnalysis("python", "tiny", ss))
   }
 
   test("Read data and do LR for small") {
-    assert(TurtleAnalysis.getDataAndComputeLR("python", "small", ss));
+    assert(TurtleAnalysis.getDataAndComputeAnalysis("python", "small", ss))
   }
 
   test("Read data and do LR for medium") {
-    assert(TurtleAnalysis.getDataAndComputeLR("python", "medium", ss));
+    assert(TurtleAnalysis.getDataAndComputeAnalysis("python", "medium", ss))
   }
 
   test("Read data and do LR for large") {
-    assert(TurtleAnalysis.getDataAndComputeLR("python", "large", ss));
+    assert(TurtleAnalysis.getDataAndComputeAnalysis("python", "large", ss))
   }
 
   before {

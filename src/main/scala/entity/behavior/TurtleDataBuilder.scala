@@ -36,7 +36,7 @@ object TurtleDataBuilder {
     */
   def buildTired(raw: String): TurtleTiredData = {
     val rawArray = splitElements(raw)
-    if (rawArray.length != 2) {
+    if (rawArray.length != 3) {
       throw new IllegalArgumentException()
     }
     TurtleTiredData(rawArray(0).toInt, rawArray(1).toInt, rawArray(2).toInt)
@@ -50,7 +50,7 @@ object TurtleDataBuilder {
     */
   def buildCyclic(raw: String): TurtleCyclicData = {
     val rawArray = splitElements(raw)
-    if (rawArray.length != 2) {
+    if (rawArray.length != 3) {
       throw new IllegalArgumentException()
     }
     val length = rawArray(0).toInt
