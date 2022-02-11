@@ -10,9 +10,14 @@ libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.9" % "test"
 
 libraryDependencies += "org.apache.spark" %% "spark-core" % "2.4.8" % "provided"
 libraryDependencies += "org.apache.spark" %% "spark-sql" % "2.4.8" % "provided"
-libraryDependencies += "org.apache.spark" %% "spark-mllib" % "2.4.8"
+libraryDependencies += "org.apache.spark" %% "spark-mllib" % "2.4.8" % "provided"
 
 libraryDependencies += "com.typesafe.play" %% "play-json" % "2.7.4"
+
+assembly / assemblyMergeStrategy  := {
+  case PathList("META-INF", xs @ _*) => MergeStrategy.discard
+  case x => MergeStrategy.first
+}
 
 dependencyOverrides ++= {
   Seq(

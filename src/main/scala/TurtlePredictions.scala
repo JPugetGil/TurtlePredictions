@@ -1,98 +1,30 @@
-import TIW6RDDUtils.{RDDExtensions, RDDMultipleTextOutputFormat}
-import entity.{RaceStepEntity, TurtleEntity, TurtleJourneyStepEntity, TurtleTypeEntity}
-import org.apache.commons.lang.StringUtils
-import org.apache.spark.{HashPartitioner, SparkConf}
-import org.apache.spark.sql.{Encoders, SparkSession}
-import play.api.libs.functional.syntax._
-import play.api.libs.json.Reads._
-import play.api.libs.json._
-
-import java.io.File
-import scala.collection.mutable.ArrayBuffer
+import entity.behavior.BehaviorFormatter
+import org.apache.spark.SparkConf
+import org.apache.spark.sql.SparkSession
+import utils.DataPredictionUtils
 
 
 object TurtlePredictions {
   val compte = "p1608911"
 
-  implicit val turtleReads: Reads[TurtleEntity] = (
-    (JsPath \ "id").read[Int] and
-      (JsPath \ "top").read[Int] and
-      (JsPath \ "position").read[Int]
-    ) (TurtleEntity.apply _)
+  def getDataAndComputePredictions(
+                                    course: String,
+                                    turtleId: Int,
+                                    top: Int,
+                                    position1: Int,
+                                    position2: Int,
+                                    position3: Int,
+                                    temperature: Double,
+                                    qualite: Double,
+                                    deltaTop: Int,
+                                    spark: SparkSession
+                                  ): Int = {
+    val row = spark.read.csv("data/%s-analysis.csv".format(course))
+      .filter(element => element(0).asInstanceOf[String].toInt == turtleId)
+      .head()
 
-  implicit val raceStepReads: Reads[RaceStepEntity] = (
-    (JsPath \ "tortoises").read[Seq[TurtleEntity]] and
-      (JsPath \ "temperature").read[Double] and
-      (JsPath \ "qualite").read[Double]
-    ) (RaceStepEntity.apply _)
-
-  implicit val turtleJourneyStepReads: Reads[TurtleJourneyStepEntity] = (
-    (JsPath \ "top").read[Int] and
-      (JsPath \ "position").read[Int] and
-      (JsPath \ "temperature").read[Double] and
-      (JsPath \ "qualite").read[Double] and
-      (JsPath \ "vitesse").read[Int]
-    ) (TurtleJourneyStepEntity.apply _)
-
-  def getListOfFiles(dir: String): List[File] = {
-    val d = new File(dir)
-    if (d.exists && d.isDirectory) {
-      d.listFiles.filter(_.isFile).toList
-    } else {
-      List[File]()
-    }
-  }
-
-  def displayValues(course: String, turtleId: Int, top: Int, position: Int, temperature: Double, qualite: Double, deltaTop: Int): Boolean = {
-    println(course, turtleId, top, position, temperature, qualite, deltaTop)
-    true
-  }
-
-  def readJsonValues(initialData: String): List[JsResult[RaceStepEntity]] = {
-    val parsed = Json.parse(initialData)
-    val jsonList: List[JsValue] = parsed.as[List[JsValue]]
-
-    jsonList.map(element => {
-      println(element.toString())
-      element.validate[RaceStepEntity]
-    })
-  }
-
-  def journeyOfTurtleN(turtleId: Int, data: List[JsResult[RaceStepEntity]]): List[TurtleJourneyStepEntity] = {
-    var counter = 0
-    data.map(raceStep => {
-      val raceStepEntity = raceStep.get
-      val currentTurtle = raceStepEntity.turtles(turtleId)
-      var turtleJourneyStepEntity: TurtleJourneyStepEntity = null
-
-      if (counter == 0) {
-        turtleJourneyStepEntity = TurtleJourneyStepEntity(top = currentTurtle.top, position = currentTurtle.position, temperature = raceStepEntity.temperature, qualite = raceStepEntity.qualite, vitesse = 0)
-      } else {
-        val computedSpeed: Int = currentTurtle.position - data(counter - 1).get.turtles(turtleId).position
-        turtleJourneyStepEntity = TurtleJourneyStepEntity(top = currentTurtle.top, position = currentTurtle.position, temperature = raceStepEntity.temperature, qualite = raceStepEntity.qualite, vitesse = computedSpeed)
-      }
-
-      counter = counter + 1
-      turtleJourneyStepEntity
-    })
-  }
-
-  def getDataAndComputeLR(directory: String, raceType: String, ss: SparkSession): Boolean = {
-    val fileList = getListOfFiles("%s/%s".format(directory, raceType))
-    val results = ArrayBuffer[TurtleTypeEntity]()
-
-    fileList.foreach(file => {
-      val turtleId = StringUtils.substringBetween(file.getName, "-", ".").split("-").last
-      val turtleJourney = ss.read.schema(Encoders.product[TurtleJourneyStepEntity].schema).option("header", "true").csv("%s/%s/%s".format(directory, raceType, file.getName))
-
-      results.append(DataAnalysisUtils.turtleAnalysis(turtleId, turtleJourney))
-    })
-
-    val rdd = ss.sparkContext.parallelize(results)
-    rdd
-      .map(a => a.toString)
-      .saveAsSingleTextFile("%s-analysis.csv".format(raceType))
-    true
+    val turtleTypeEntity = BehaviorFormatter.toEntity(row)
+    DataPredictionUtils.doTurtlePrediction(turtleTypeEntity, top, position1, position2, position3, temperature, qualite, deltaTop, spark)
   }
 
   def main(args: Array[String]): Unit = {
@@ -104,22 +36,29 @@ object TurtlePredictions {
         .config(conf)
         .getOrCreate()
 
-      if (args.length == 7) {
+      if (args.length == 9) {
         val course: String = args(0)
         val turtleId: Int = args(1).toInt
         val top: Int = args(2).toInt
-        val position: Int = args(3).toInt
-        val temperature: Double = args(4).toDouble
-        val qualite: Double = args(5).toDouble
-        val deltaTop: Int = args(6).toInt
+        val position1: Int = args(3).toInt
+        val position2: Int = args(4).toInt
+        val position3: Int = args(5).toInt
+        val temperature: Double = args(6).toDouble
+        val qualite: Double = args(7).toDouble
+        val deltaTop: Int = args(8).toInt
+
+        getDataAndComputePredictions(course, turtleId, top, position1, position2, position3, temperature, qualite, deltaTop, spark)
 
       } else {
+        // Exemple d'une tortue régulière avec pas de 2
         println(
           "Usage: spark-submit --class TurtlePredictions /home/" + compte + "/TurtlePredictions-assembly-1.0.jar " +
             "small" +
             "6" +
             "20000" +
             "42" +
+            "44" +
+            "46" +
             "15.823" +
             "0.66" +
             "15"
