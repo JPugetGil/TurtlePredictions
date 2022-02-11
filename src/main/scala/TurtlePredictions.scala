@@ -24,7 +24,7 @@ object TurtlePredictions {
       .head()
 
     val turtleTypeEntity = BehaviorFormatter.toEntity(row)
-    DataPredictionUtils.doTurtlePrediction(turtleTypeEntity, top, position1, position2, position3, temperature, qualite, deltaTop)
+    DataPredictionUtils.doTurtlePrediction(turtleTypeEntity, top, position1, position2, position3, temperature, qualite, deltaTop, spark)
   }
 
   def main(args: Array[String]): Unit = {
@@ -51,6 +51,7 @@ object TurtlePredictions {
 
       } else {
         // Exemple d'une tortue régulière avec pas de 2
+        // FIXME : Test and try
         println(
           "Usage: spark-submit --class TurtlePredictions /home/" + compte + "/TurtlePredictions-assembly-1.0.jar " +
             "small" +

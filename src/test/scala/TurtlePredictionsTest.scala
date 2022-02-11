@@ -8,20 +8,6 @@ class TurtlePredictionsTest
     with BeforeAndAfter {
   var ss: SparkSession = _
 
-  /*
-                                    course: String,
-                                    turtleId: Int,
-                                    top: Int,
-                                    position1: Int,
-                                    position2: Int,
-                                    position3: Int,
-                                    temperature: Double,
-                                    qualite: Double,
-                                    deltaTop: Int,
-                                    spark: SparkSession
-  */
-
-  // FIXME : Tester
   // Fatiguée
   test("TIRED : Read data and do prediction for tiny, turtle 1 at position 810284") {
     assert(TurtlePredictions.getDataAndComputePredictions(
@@ -35,7 +21,7 @@ class TurtlePredictionsTest
       0.3100529516794682,
       64,
       ss
-    ) == 141571778);
+    ) == 141571778)
   }
 
 
@@ -68,15 +54,25 @@ class TurtlePredictionsTest
       0.3100529516794682,
       90,
       ss
-    ) == 123115943);
+    ) == 123115943)
   }
 
-  /*
-  // FIXME : Tester
   // Lunatique
   test("LUNATIC : Read data and do prediction for large, turtle 0 at position 810463") {
-    assert(TurtlePredictions.getDataAndComputePredictions("large", 0, 810463, 0, 0, 0, ss) == 138498538);
-  }*/
+    val resultPosition = TurtlePredictions.getDataAndComputePredictions(
+      "large",
+      0,
+      900437,
+      154877844,
+      154878146,
+      154878291,
+      1.827391490845144,
+      0.5442968871289444,
+      59,
+      ss
+    )
+    assert(154890162 - 1400 < resultPosition && resultPosition < 154890162 + 1400)
+  }
 
   before {
     // configuration de Spark
