@@ -105,25 +105,15 @@ object TurtleAnalysis {
         .config(conf)
         .getOrCreate()
 
-      if (args.length == 7) {
+      if (args.length == 1) {
+        // FIXME : Test and try
         val course: String = args(0)
-        val turtleId: Int = args(1).toInt
-        val top: Int = args(2).toInt
-        val position: Int = args(3).toInt
-        val temperature: Double = args(4).toDouble
-        val qualite: Double = args(5).toDouble
-        val deltaTop: Int = args(6).toInt
+        getDataAndComputeAnalysis("hdfs:///user/p1608911/data", course, spark)
 
       } else {
         println(
           "Usage: spark-submit --class TurtleAnalysis /home/" + compte + "/TurtlePredictions-assembly-1.0.jar " +
-            "small" +
-            "6" +
-            "20000" +
-            "42" +
-            "15.823" +
-            "0.66" +
-            "15"
+            "small"
         )
       }
     }

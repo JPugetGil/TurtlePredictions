@@ -45,10 +45,10 @@ object DataAnalysisUtils {
       }
 
       isLunatic = true
+
       val indexArray = Array(regularInfo._3._1, tirednessInfo._5._1, cyclicInfo._5._1)
       val max = indexArray.max
       val indexOfMax = indexArray.indexOf(max)
-
       val temperatureAndQualite = getTemperatureAndQualite(indexOfMax, regularInfo, tirednessInfo, cyclicInfo)
       val behaviorData = getBehaviorData(indexOfMax, regularInfo, tirednessInfo, cyclicInfo)
 
