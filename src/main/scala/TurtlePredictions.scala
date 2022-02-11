@@ -19,7 +19,7 @@ object TurtlePredictions {
                                     deltaTop: Int,
                                     spark: SparkSession
                                   ): Int = {
-    val row = spark.read.csv("%s-analysis.csv".format(course))
+    val row = spark.read.csv("data/%s-analysis.csv".format(course))
       .filter(element => element(0).asInstanceOf[String].toInt == turtleId)
       .head()
 
@@ -51,7 +51,6 @@ object TurtlePredictions {
 
       } else {
         // Exemple d'une tortue régulière avec pas de 2
-        // FIXME : Test and try
         println(
           "Usage: spark-submit --class TurtlePredictions /home/" + compte + "/TurtlePredictions-assembly-1.0.jar " +
             "small" +

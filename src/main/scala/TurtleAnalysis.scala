@@ -1,7 +1,8 @@
-import utils.TIW6RDDUtils.{RDDExtensions, RDDMultipleTextOutputFormat}
 import entity.{RaceStepEntity, TurtleEntity, TurtleJourneyStepEntity, TurtleTypeEntity}
 import org.apache.commons.lang.StringUtils
-import org.apache.spark.{HashPartitioner, SparkConf}
+import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.{FileSystem, Path}
+import org.apache.spark.SparkConf
 import org.apache.spark.sql.{Encoders, SparkSession}
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
@@ -35,13 +36,15 @@ object TurtleAnalysis {
       (JsPath \ "vitesse").read[Int]
     ) (TurtleJourneyStepEntity.apply _)
 
-  def getListOfFiles(dir: String): List[File] = {
-    val d = new File(dir)
-    if (d.exists && d.isDirectory) {
-      d.listFiles.filter(_.isFile).toList
-    } else {
-      List[File]()
+  def getArrayOfPaths(dir: String): Array[Path] = {
+    val fs = FileSystem.get(new Configuration())
+    val remoteIterator = fs.listFiles(new Path(dir), false)
+    val arrayPath = ArrayBuffer[Path]()
+
+    while (remoteIterator.hasNext) {
+      arrayPath.append(remoteIterator.next().getPath)
     }
+    arrayPath.toArray
   }
 
   def displayValues(course: String, turtleId: Int, top: Int, position: Int, temperature: Double, qualite: Double, deltaTop: Int): Boolean = {
@@ -79,20 +82,26 @@ object TurtleAnalysis {
   }
 
   def getDataAndComputeAnalysis(directory: String, raceType: String, ss: SparkSession): Boolean = {
-    val fileList = getListOfFiles("%s/%s".format(directory, raceType))
+    val pathArray = getArrayOfPaths("%s/%s".format(directory, raceType))
     val results = ArrayBuffer[TurtleTypeEntity]()
 
-    fileList.foreach(file => {
-      val turtleId = StringUtils.substringBetween(file.getName, "-", ".").split("-").last
-      val turtleJourney = ss.read.schema(Encoders.product[TurtleJourneyStepEntity].schema).option("header", "true").csv("%s/%s/%s".format(directory, raceType, file.getName))
+    println(s"Nombre de fichiers détectés : ${pathArray.length}")
+    pathArray.foreach(path => {
+      println(s"Lecture du fichier : ${path.getName}")
+      val turtleId = StringUtils.substringBetween(path.getName, "-", ".").split("-").last
+      val turtleJourney = ss.read.schema(Encoders.product[TurtleJourneyStepEntity].schema).option("header", "true").csv("%s/%s/%s".format(directory, raceType, path.getName))
 
       results.append(DataAnalysisUtils.turtleAnalysis(turtleId, turtleJourney))
     })
 
     val rdd = ss.sparkContext.parallelize(results)
-    rdd
-      .map(a => a.toString)
-      .saveAsSingleTextFile("%s-analysis.csv".format(raceType))
+    if (FileSystem.get(new Configuration()).exists(new Path("%s/%s-analysis.csv".format(directory, raceType)))) {
+      println("L'analyse et la construction du modèle de cette course a déjà été réalisée")
+    } else {
+      rdd
+        .map(a => a.toString)
+        .saveAsTextFile("%s/%s-analysis.csv".format(directory, raceType))
+    }
     true
   }
 
@@ -106,13 +115,12 @@ object TurtleAnalysis {
         .getOrCreate()
 
       if (args.length == 1) {
-        // FIXME : Test and try
         val course: String = args(0)
-        getDataAndComputeAnalysis("hdfs:///user/p1608911/data", course, spark)
+        getDataAndComputeAnalysis(s"hdfs:///user/$compte/data", course, spark)
 
       } else {
         println(
-          "Usage: spark-submit --class TurtleAnalysis /home/" + compte + "/TurtlePredictions-assembly-1.0.jar " +
+          s"Usage: spark-submit --class TurtleAnalysis /home/$compte/TurtlePredictions-assembly-1.0.jar " +
             "small"
         )
       }
