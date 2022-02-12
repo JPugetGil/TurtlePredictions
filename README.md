@@ -22,6 +22,8 @@ nous avons choisi d'exécuter 4 fois le script avec un paramètre différent dan
 Pour simplifier l'analyse, nous avons choisi de calculer également la "vitesse" de la tortue à ce moment-là,
 c'est-à-dire la différence entre la position précédente et la position courante.
 
+Les données sont classées par course puis par tortue (un fichier par tortue et par type de course).
+
 ## Analyse des comportements
 
 ### Script `analyse.sh`
@@ -44,8 +46,15 @@ Avant de commencer l'analyse à proprement parler, on filtre les lignes qui ne s
 cas de problème sur les machines qui interrompent le processus d'écriture).
 
 Pour rappel, la vitesse est calculée à l'acquisition et résulte de la différence entre une position et sa position
-précédente *enregistrée*, et ce même si des tops ont été sautés.
+précédente *enregistrée*, et ce même si des tops ont été sautés. Certaines vitesses risquent d'être aberrantes.
 Nous avons donc dû adapter nos algorithmes pour qu'ils soient résistant à la non-continuité des données.
+
+Pour nos algorithmes, nous avons eu besoin de connaître les index des données que nous traitions pour identifier les comportements, et nous avons donc dû transformer les types RDD en Array.
+Cela impacte donc les performances d'analyse, mais nous avons mesuré que sur nos machines, pour la course large qui contient environ 28 h de données, l'analyse a mis environ 6-7 min à s'exécuter.
+
+*Note* : Nous avions prévu une récupération des données plus longue, mais elle a été interrompue par la saturation de stockage du serveur.
+
+Enfin, les données d'analyses sont stockés dans un fichier unique par type de course. Chaque ligne correspond à une tortue, elle contient son identifiant, son type et les informations concernant son comportement.
 
 #### Analyse d'une régulière
 
@@ -66,13 +75,14 @@ faire changer le comportement des tortues lunatiques.
 
 La tortue fatiguée possède 2 phases dans son comportement : une phase de décélération et une phase d'accélération.
 Nous sommes partis de ce principe pour identifier les tortues fatiguées.
-On commence par un échantillon de 4 vitesses consécutives, et on calcule l'écart entre chaque.
-De cette liste d'écarts, on prend la valeur maximale (dans le cas où l'on arrive à un maximum ou un minimum cette
-valeur diminue), et on fait l'hypothèse pour la suite que c'est le paramètre de la tortue fatiguée.
-Ensuite, on parcourt les autres tops et on compare cette "accélération" à l'accélération entre deux tops consécutifs.
-On calcule en même temps la vitesse maximale.
-Si elle est identique tout du long (sauf dans les cas où la vitesse courante est à 0 ou à la vitesse maximale
-enregistrée), alors on considère qu'elle est cyclique de paramètres de la vitesse maximale et de l'accélération.
+On commence par un échantillon de 4 vitesses consécutives, et on calcule l'écart entre chaque (l'accélération).
+De cette liste d'écarts, on prend la valeur maximale (dans le cas où l'on arrive à un maximum ou un minimum, cette
+valeur est plus petite que les autres), et on fait l'hypothèse pour la suite que c'est le paramètre de la tortue
+fatiguée.
+Ensuite, on parcourt les autres tops et on compare cette valeur à l'accélération entre deux tops consécutifs.
+On calcule par la même occasion la vitesse maximale.
+Si elle est identique tout du long (sauf dans les cas où la vitesse courante est à 0 ou au maximum enregistré), alors
+on considère qu'elle est cyclique de paramètres de la vitesse maximale et de l'accélération.
 
 De manière analogue à l'analyse de la tortue régulière, on aurait pu se contenter de vérifier sur un nombre limité de
 phases pour gagner en performance, mais on partirait d'une hypothèse dont on ne peut pas vérifier la validité.
