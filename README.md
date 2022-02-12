@@ -139,21 +139,65 @@ Nous avons donc implémenté des classes utilitaires spécifiques pour parser le
 modélisant ces données et des méthodes capables de convertir ces classes en chaînes formatées.
 
 - `TurtleBehaviorData`, `TurtleRegularData`, `TurtleTiredData`, `TurtleCyclicData`, `TurtleLunaticData`,
-`TurtleSubBehaviorData` : modélisent les données.
+  `TurtleSubBehaviorData` : modélisent les données.
     - `TurtleBehaviorData` est la classe abstraite parente des autres classes de comportement.
     - `TurtleSubBehaviorData` permet de modéliser les différents comportements pris par une tortue lunatique, elle
-  contient un attribut de type `TurtleBehaviorData` ainsi que d'autres informations nécessaires à la prédiction.
+      contient un attribut de type `TurtleBehaviorData` ainsi que d'autres informations nécessaires à la prédiction.
 - `BehaviorFormatter` : s'occupe des conversions entités ↔ chaîne de caractères
 - `TurtleDataBuilder` : contient les méthodes de constructions des entités à partir de ligne
 
 ## Prédiction de la position
 
-### Script `prediction.sh`
+Nous avons considéré pour cette partie qu'il n'était pas demandé de pouvoir déterminer la position de la tortue avec
+un `deltatop` négatif, car le terme "prédiction" implique un événement futur, et non passé.
+Notre algorithme peut être adapté pour être appliqué avec un `deltatop` négatif, mais nous avons jugé qu'il n'était pas nécessaire de l'implémenter pour répondre au sujet.
+
+Avant d'exécuter la prédiction, nous effectuons une vérification sur les paramètres du script.
+Nous vérifions que les positions entrées correspondent au comportement que nous avons déterminé pendant la phase
+d'analyse. Si ce n'est pas le cas, nous indiquons l'incohérence et nous ignorons les positions 2 et 3 données pour
+effectuer la prédiction.
 
 ### Prédiction d'une régulière
 
+Dans le cas d'une tortue régulière, on détermine sa position future en appliquant la formule
+$position = pos_1 + \Delta top \times v$ où $v$ est la vitesse déterminée lors de l’analyse.
+Cette prédiction est donc déterministe.
+
 ### Prédiction d'une fatiguée
+
+Les 3 positions données en paramètres nous permettent de déterminer si la tortue fatiguée est dans une phase
+d’accélération ou de décélération.
+Si elle accélère, itérativement, on ajoute à la position la vitesse valant la vitesse précédente + le "pas" déterminé
+par l'analyse, jusqu'à ce que la vitesse atteigne le *maximum* dans la phase d'accélération, puis on ajoute à la
+position la vitesse précédente - le "pas", jusqu'à atteindre *0* dans la phase de ralentissement, (et inversement si
+la tortue décélère).
+On effectue chaque avancée un nombre `deltatop` de fois.
+Cette prédiction est donc également déterministe.
 
 ### Prédiction d'une cyclique
 
+À partir des vitesses déduites des positions données, on détermine à quel moment du cycle en est la tortue.
+On récupère donc l'index de la vitesse, et on applique le motif en boucle à partir de cet index sur une durée de
+`deltatop`.
+Nous obtenons donc une position certaine, dans le cas où le cycle a bien été construit.
+
 ### Prédiction d'une lunatique
+
+Comme on part du principe que le comportement ne change pas dans la durée `deltatop`, nous n'avons pas à prédire les
+changements de qualité et de température.
+
+On commence par faire une régression linéaire en fonction de la qualité, de la température pour déterminer le
+comportement, avec les sous-comportements enregistrés dans l'analyse.
+On obtient une fonction de la forme :
+$comportement = qualité \times a + température \times b + c$, où $a$, $b$, $c$ sont les coefficients propres à la
+tortue.
+On peut donc identifier le type de comportement pris par la tortue assez précisément.
+
+Afin de trouver les paramètres propres du comportement, on compare la qualité et la température d'entrée avec celles
+que nous avons collectées.
+On récupère les sous-comportements enregistrés qui ont le même type que celui déterminé par la régression linéaire,
+puis on choisit celui dont la température et la qualité sont les plus proches de celles données en entrée.
+On applique ensuite ce comportement avec les paramètres associés tels que décrit précédemment.
+
+Cette méthode est donc approximative, mais elle est suffisamment efficace pour un grand nombre de tops enregistrés et
+donc un grand nombre de sous-comportements enregistrés.
