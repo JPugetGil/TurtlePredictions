@@ -49,12 +49,16 @@ Pour rappel, la vitesse est calculée à l'acquisition et résulte de la différ
 précédente *enregistrée*, et ce même si des tops ont été sautés. Certaines vitesses risquent d'être aberrantes.
 Nous avons donc dû adapter nos algorithmes pour qu'ils soient résistant à la non-continuité des données.
 
-Pour nos algorithmes, nous avons eu besoin de connaître les index des données que nous traitions pour identifier les comportements, et nous avons donc dû transformer les types RDD en Array.
-Cela impacte donc les performances d'analyse, mais nous avons mesuré que sur nos machines, pour la course large qui contient environ 28 h de données, l'analyse a mis environ 6-7 min à s'exécuter.
+Pour nos algorithmes, nous avons eu besoin de connaître les index des données que nous traitions pour identifier les
+comportements, et nous avons donc dû transformer les types RDD en Array.
+Cela impacte donc les performances d'analyse, mais nous avons mesuré que sur nos machines, pour la course large qui
+contient environ 28 h de données, l'analyse a mis environ 6-7 min à s'exécuter.
 
-*Note* : Nous avions prévu une récupération des données plus longue, mais elle a été interrompue par la saturation de stockage du serveur.
+*Note* : Nous avions prévu une récupération des données plus longue, mais elle a été interrompue par la saturation de
+stockage du serveur.
 
-Enfin, les données d'analyses sont stockés dans un fichier unique par type de course. Chaque ligne correspond à une tortue, elle contient son identifiant, son type et les informations concernant son comportement.
+Enfin, les données d'analyses sont stockés dans un fichier unique par type de course. Chaque ligne correspond à une
+tortue, elle contient son identifiant, son type et les informations concernant son comportement.
 
 #### Analyse d'une régulière
 
@@ -96,13 +100,39 @@ Si le comportement est le même sur tous les tops, alors la tortue est fatiguée
 
 #### Analyse d'une cyclique
 
+On commence par générer un motif, en parcourant le tableau d'avancement de la tortue, jusqu'à arriver à un élément
+déjà rencontré.
+On vérifie ensuite si ce motif se répète tout au long de notre enregistrement. S’il ne se répète pas, on vérifie
+qu’on n'a pas loupé de top. Si oui, on ignore, sinon, elle n'est pas cyclique, et comme on a aussi vérifié qu'elle
+n'est ni régulière ni fatiguée, elle est donc lunatique.
+
+On part de l'hypothèse que nous n'avons aucun top manquant dans ce motif, et qu'il est donc complet.
+Le motif étant au maximum grand de 800 tops, et que le nombre de tops manqués constaté est très faible, nous avons
+considéré cette hypothèse valide. Elle est notamment vérifiée sur les 800 premiers tops de nos données récupérées.
+Mais cette hypothèse peut effectivement poser problème dans le cas d'une lunatique qui a un "sous comportement"
+cyclique, qui peut survenir plus tard dans l'enregistrement.
+
 #### Analyse de lunatique
+
+On arrive à cette partie d'analyse quand aucun autre comportement ne correspond strictement à la tortue analysée.
+On considère donc à ce niveau de l'analyse que la tortue est lunatique.
+Dans les tests précédents, nous avons pris soin d'enregistrer l'index où la rupture du comportement analysé se
+produit.
+On choisit ensuite le comportement dont l'index de rupture est le plus grand, et cela détermine un sous-comportement
+de la tortue lunatique et quand il se termine.
+On recommence cette analyse (les tests successifs pour le comportement régulier, fatiguée et cyclique) de la tortue
+lunatique sur une portion de sa course, celle après la fin de ce sous-comportement, pour déterminer un nouveau
+sous-comportement, et ce jusqu'à ce qu'il ne reste plus qu'un élément restant dans la course enregistrée.
+
+À chaque sous comportement trouvé, on enregistre son type, son top de début, la qualité et la température.
+Ces données nous servirons pour la prédiction.
 
 ### Parsing
 
 Nos données d'analyse sont enregistrées sous forme de fichier CSV à 3 colonnes : (id tortue, type de comportement,
 informations de comportement).
-Comme les informations nécessaires à la prédiction varie selon le type de comportement, nous avons décidé que le contenu
+Comme les informations nécessaires à la prédiction varie selon le type de comportement, nous avons décidé que le
+contenu
 de la dernière colonne serait sous la forme d'une chaîne de caractères formatée, que nous pourrons adapter à chaque
 comportement.
 Nous avons donc implémenté des classes utilitaires spécifiques pour parser les éléments de cette colonne, des classes
