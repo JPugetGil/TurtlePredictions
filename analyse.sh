@@ -36,6 +36,10 @@ then
   hdfs dfs -copyFromLocal -f large/* "$destHDFSdata/large/"
 
   echo "Transfert sur HDFS effectué."
+
+  tar zcf analysis.tar.gz tiny/ small/ medium/ large/
+  rm -R tiny/ small/ medium/ large/
+  echo "Les données ont été compressées dans une archive sur la machine disponible sous python/analysis.tar.gz"
 fi
 
 echo "Analyse des données..."
