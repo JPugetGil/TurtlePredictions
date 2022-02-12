@@ -1,7 +1,5 @@
 # TIW6 - TurtlePrediction
 
-> On décrira le ou les programmes implémentés, les algorithmes mis au point pour retrouver les catégories de tortues et les paramètres, ainsi que l’algorithme de prédiction
-
 [TOC]
 
 ## Informations groupe
@@ -21,7 +19,8 @@ Cependant, nous avons manqué de temps pour comprendre comment lire et écrire d
 Nous avons donc opté pour une méthode où nous avons optimisé la mémoire du programme et en utilisant des threads.
 Cette méthode nous a posé des difficultés lorsqu'il a fallu récupérer des courses différentes dans un même script, donc
 nous avons choisi d'exécuter 4 fois le script avec un paramètre différent dans `analyse.sh`.
-Pour simplifier l'analyse, nous avons choisi de calculer également la "vitesse" de la tortue à ce moment-là, c'est-à-dire la différence entre la position précédente et la position courante.
+Pour simplifier l'analyse, nous avons choisi de calculer également la "vitesse" de la tortue à ce moment-là,
+c'est-à-dire la différence entre la position précédente et la position courante.
 
 ## Analyse des comportements
 
@@ -37,23 +36,31 @@ Il n'est cependant pas nécessaire d'ajouter un argument pour faire fonctionner 
 ### Reconnaissance des comportements
 
 Une fois la récupération réalisée, nous pouvons passer à l'analyse des comportements des tortues pour chaque course.
-Pour chaque tortue, nous allons successivement appliquer une batterie de tests, dans cet ordre : si elle est régulière, si elle est fatiguée, si elle est cyclique. La dernière étape concernant la lunatique permet d'identifier les différents sous-comportements.
+Pour chaque tortue, nous allons successivement appliquer une batterie de tests, dans cet ordre : si elle est régulière,
+si elle est fatiguée, si elle est cyclique. La dernière étape concernant la lunatique permet d'identifier les différents
+sous-comportements.
 
-Avant de commencer l'analyse à proprement parler, on filtre les lignes qui ne sont pas complètes (ce qui peut arriver en cas de problème sur les machines qui interrompent le processus d'écriture).
+Avant de commencer l'analyse à proprement parler, on filtre les lignes qui ne sont pas complètes (ce qui peut arriver en
+cas de problème sur les machines qui interrompent le processus d'écriture).
 
-Pour rappel, la vitesse est calculée à l'acquisition et résulte de la différence entre une position et sa position précédente *enregistrée*, et ce même si des tops ont été sautés.
+Pour rappel, la vitesse est calculée à l'acquisition et résulte de la différence entre une position et sa position
+précédente *enregistrée*, et ce même si des tops ont été sautés.
 Nous avons donc dû adapter nos algorithmes pour qu'ils soient résistant à la non-continuité des données.
 
 #### Analyse d'une régulière
 
 On vérifie que la vitesse est constante sur l'ensemble des tops de la tortue.
 En cas de saut de top, la vitesse peut apparaître plus grande que ce qu'elle n'est réellement.
-On vérifie donc à chaque top s'il suit directement le précédent, et si c'est le cas, mais que les vitesses varient d'un top à l'autre ou qu'elle est différente de la première vitesse enregistrée, alors elle n'est pas régulière.
+On vérifie donc à chaque top s'il suit directement le précédent, et si c'est le cas, mais que les vitesses varient d'un
+top à l'autre ou qu'elle est différente de la première vitesse enregistrée, alors elle n'est pas régulière.
 
-Une amélioration en termes de performance aurait été d'effectuer la vérification uniquement sur 2 ou éventuellement 3 phases de température ou de qualité différentes.
+Une amélioration en termes de performance aurait été d'effectuer la vérification uniquement sur 2 ou éventuellement 3
+phases de température ou de qualité différentes.
 Si elle n'a pas modifié sa vitesse sur plusieurs phases, alors elle on peut considérer qu'elle n'est pas lunatique.
-Dans ce cas on ne peut pas être sûr entièrement que la tortue est régulière, si jamais la tortue n'est pas suffisamment sensible aux modifications entre chaque phase, mais l'expérience nous a montré que ça n'arrivait pas.
-On peut alors faire cette hypothèse que les changements de paramètre à chaque phase sont suffisamment significatifs pour faire changer le comportement des tortues lunatiques.
+Dans ce cas on ne peut pas être sûr entièrement que la tortue est régulière, si jamais la tortue n'est pas suffisamment
+sensible aux modifications entre chaque phase, mais l'expérience nous a montré que ça n'arrivait pas.
+On peut alors faire cette hypothèse que les changements de paramètre à chaque phase sont suffisamment significatifs pour
+faire changer le comportement des tortues lunatiques.
 
 #### Analyse d'une fatiguée
 
@@ -83,13 +90,19 @@ Si le comportement est le même sur tous les tops, alors la tortue est fatiguée
 
 ### Parsing
 
-Nos données d'analyse sont enregistrées sous forme de fichier CSV à 3 colonnes : (id tortue, type de comportement, informations de comportement).
-Comme les informations nécessaires à la prédiction varie selon le type de comportement, nous avons décidé que le contenu de la dernière colonne serait sous la forme d'une chaîne de caractères formatée, que nous pourrons adapter à chaque comportement.
-Nous avons donc implémenté des classes utilitaires spécifiques pour parser les éléments de cette colonne, des classes modélisant ces données et des méthodes capables de convertir ces classes en chaînes formatées.
+Nos données d'analyse sont enregistrées sous forme de fichier CSV à 3 colonnes : (id tortue, type de comportement,
+informations de comportement).
+Comme les informations nécessaires à la prédiction varie selon le type de comportement, nous avons décidé que le contenu
+de la dernière colonne serait sous la forme d'une chaîne de caractères formatée, que nous pourrons adapter à chaque
+comportement.
+Nous avons donc implémenté des classes utilitaires spécifiques pour parser les éléments de cette colonne, des classes
+modélisant ces données et des méthodes capables de convertir ces classes en chaînes formatées.
 
-- `TurtleBehaviorData`, `TurtleRegularData`, `TurtleTiredData`, `TurtleCyclicData`, `TurtleLunaticData`, `TurtleSubBehaviorData` : modélisent les données.
-  - `TurtleBehaviorData` est la classe abstraite parente des autres classes de comportement.
-  - `TurtleSubBehaviorData` permet de modéliser les différents comportements pris par une tortue lunatique, elle contient un attribut de type `TurtleBehaviorData` ainsi que d'autres informations nécessaires à la prédiction.
+- `TurtleBehaviorData`, `TurtleRegularData`, `TurtleTiredData`, `TurtleCyclicData`, `TurtleLunaticData`,
+`TurtleSubBehaviorData` : modélisent les données.
+    - `TurtleBehaviorData` est la classe abstraite parente des autres classes de comportement.
+    - `TurtleSubBehaviorData` permet de modéliser les différents comportements pris par une tortue lunatique, elle
+  contient un attribut de type `TurtleBehaviorData` ainsi que d'autres informations nécessaires à la prédiction.
 - `BehaviorFormatter` : s'occupe des conversions entités ↔ chaîne de caractères
 - `TurtleDataBuilder` : contient les méthodes de constructions des entités à partir de ligne
 
@@ -99,8 +112,8 @@ Nous avons donc implémenté des classes utilitaires spécifiques pour parser le
 
 ### Prédiction d'une régulière
 
-### Prédiction d'une régulière
+### Prédiction d'une fatiguée
 
-### Prédiction d'une régulière
+### Prédiction d'une cyclique
 
-### Prédiction d'une régulière
+### Prédiction d'une lunatique
