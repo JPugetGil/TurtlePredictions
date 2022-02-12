@@ -160,7 +160,7 @@ effectuer la prédiction.
 ### Prédiction d'une régulière
 
 Dans le cas d'une tortue régulière, on détermine sa position future en appliquant la formule
-$position = pos_1 + \Delta top \times v$ où $v$ est la vitesse déterminée lors de l’analyse.
+$`position = pos_1 + \Delta top \times v`$ où $`v`$ est la vitesse déterminée lors de l’analyse.
 Cette prédiction est donc déterministe.
 
 ### Prédiction d'une fatiguée
@@ -189,8 +189,8 @@ changements de qualité et de température.
 On commence par faire une régression linéaire en fonction de la qualité, de la température pour déterminer le
 comportement, avec les sous-comportements enregistrés dans l'analyse.
 On obtient une fonction de la forme :
-$comportement = qualité \times a + température \times b + c$, où $a$, $b$, $c$ sont les coefficients propres à la
-tortue.
+$`comportement = qualité \times a + température \times b + c`$, où $`a`$, $`b`$, $`c`$ sont les coefficients propres à
+la tortue.
 On peut donc identifier le type de comportement pris par la tortue assez précisément.
 
 Afin de trouver les paramètres propres du comportement, on compare la qualité et la température d'entrée avec celles
