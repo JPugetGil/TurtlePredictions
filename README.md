@@ -5,7 +5,7 @@
 ## Informations groupe
 
 - ICMEN Malik p1704010
-- GIL Jérôme p1608911
+- PUGET GIL Jey p1608911
 - TRÉMÉ Guillaume p1507711
 - VIGLIANO Léa p1517348
 
